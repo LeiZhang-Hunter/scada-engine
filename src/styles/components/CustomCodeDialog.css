@@ -1,0 +1,309 @@
+/* 弹窗样式 */
+.dialog-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.6);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 10000;
+	animation: fadeIn 0.2s;
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+/* 大弹窗样式（用于代码编辑器） */
+.dialog-large {
+	max-width: 1200px;
+	height: 80vh;
+	display: flex;
+	flex-direction: column;
+}
+
+.dialog-content {
+	background: #1e293b;
+	border-radius: 8px;
+	width: 90%;
+	box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+	animation: slideUp 0.3s;
+}
+
+@keyframes slideUp {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.dialog-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: 20px 24px;
+	border-bottom: 1px solid #334155;
+}
+
+.dialog-header h3 {
+	font-size: 18px;
+	font-weight: 600;
+	color: #e2e8f0;
+	margin: 0;
+}
+
+.btn-close {
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent;
+	border: none;
+	color: #94a3b8;
+	font-size: 24px;
+	cursor: pointer;
+	border-radius: 4px;
+	transition: all 0.2s;
+}
+
+.btn-close:hover {
+	background: #334155;
+	color: #e2e8f0;
+}
+
+/* 分栏布局 */
+.dialog-body-split {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 20px;
+	flex: 1;
+	overflow: hidden;
+	padding: 24px;
+}
+
+/* 代码编辑器区域 */
+.code-editor-section {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	height: 100%;
+}
+
+.code-textarea-full {
+	flex: 1;
+	resize: none;
+	height: 100% !important;
+}
+
+.code-textarea {
+	width: 100%;
+	padding: 12px;
+	background: #0f172a;
+	border: 1px solid #334155;
+	border-radius: 4px;
+	color: #e2e8f0;
+	font-size: 13px;
+	font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+	line-height: 1.6;
+	transition: all 0.2s;
+}
+
+.code-textarea:focus {
+	outline: none;
+	border-color: #3b82f6;
+	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.section-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+.section-header label {
+	font-size: 14px;
+	color: #cbd5e1;
+	font-weight: 600;
+}
+
+.preview-status {
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.status-success {
+	color: #10b981;
+}
+
+.status-error {
+	color: #ef4444;
+}
+
+.btn-test {
+	padding: 6px 16px;
+	background: #10b981;
+	border: 1px solid #10b981;
+	border-radius: 4px;
+	color: #fff;
+	cursor: pointer;
+	font-size: 13px;
+	font-weight: 500;
+	transition: all 0.2s;
+}
+
+.btn-test:hover {
+	background: #059669;
+	border-color: #059669;
+}
+
+/* 预览区域 */
+.code-preview-section {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	height: 100%;
+}
+
+.preview-canvas {
+	flex: 1;
+	background: #0f172a;
+	border: 1px solid #334155;
+	border-radius: 4px;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.node-preview {
+	flex: 1;
+	position: relative;
+	min-height: 300px;
+}
+
+.console-output {
+	max-height: 150px;
+	background: #020617;
+	border-top: 1px solid #334155;
+	padding: 12px;
+	overflow-y: auto;
+}
+
+.console-title {
+	font-size: 12px;
+	color: #94a3b8;
+	margin-bottom: 8px;
+	font-weight: 500;
+}
+
+.console-logs {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.preview-empty {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+	color: #64748b;
+	font-size: 14px;
+	text-align: center;
+	padding: 20px;
+}
+
+.preview-error-box {
+	padding: 20px;
+	height: 100%;
+	overflow-y: auto;
+}
+
+.error-title {
+	font-size: 13px;
+	color: #ef4444;
+	margin-bottom: 12px;
+	font-weight: 500;
+}
+
+.preview-node-container {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+}
+
+.log-item {
+	font-family: 'Consolas', 'Monaco', monospace;
+	font-size: 12px;
+	color: #e2e8f0;
+	margin-bottom: 4px;
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.log-item:last-child {
+	margin-bottom: 0;
+}
+
+.error-message {
+	background: #450a0a;
+	border: 1px solid #7f1d1d;
+	border-radius: 4px;
+	padding: 12px;
+	font-family: 'Consolas', 'Monaco', monospace;
+	font-size: 12px;
+	color: #fca5a5;
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.dialog-footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 12px;
+	padding: 16px 24px;
+	border-top: 1px solid #334155;
+}
+
+.btn-cancel,
+.btn-confirm {
+	padding: 8px 20px;
+	border-radius: 4px;
+	font-size: 14px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.btn-cancel {
+	background: transparent;
+	border: 1px solid #475569;
+	color: #cbd5e1;
+}
+
+.btn-cancel:hover {
+	background: #334155;
+}
+
+.btn-confirm {
+	background: #3b82f6;
+	border: 1px solid #3b82f6;
+	color: #fff;
+}
+
+.btn-confirm:hover {
+	background: #2563eb;
+	border-color: #2563eb;
+}

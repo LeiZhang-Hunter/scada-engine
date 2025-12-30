@@ -1,0 +1,197 @@
+/* SCADA Engine 样式系统 - 强隔离模式,抵抗外部样式污染 */
+
+/* 0. 根容器样式 - 精准重置被污染的属性,避免破坏布局 */
+.scada-layout[data-scada-theme="dark"] {
+	/* 字体和文本 */
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+	-webkit-font-smoothing: antialiased !important;
+	-moz-osx-font-smoothing: grayscale !important;
+	color: #e2e8f0 !important;
+	font-size: 14px !important;
+	line-height: 1.5 !important;
+	
+	/* 盒模型 - 精准重置 */
+	box-sizing: border-box !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	border: none !important;
+	
+	/* 布局 - 保持flex特性 */
+	display: flex !important;
+	flex-direction: column !important;
+	flex: 1 !important;
+	
+	/* 尺寸 */
+	width: 100% !important;
+	height: 100% !important;
+	min-height: 100vh !important;
+	
+	/* 外观 */
+	background: #1a1a2e !important;
+	overflow: hidden !important;
+	
+	/* 定位 */
+	position: relative !important;
+}
+
+/* 1. 重置所有后代元素 - 抵抗外部全局样式 */
+.scada-layout[data-scada-theme="dark"] *,
+.scada-layout[data-scada-theme="dark"] *::before,
+.scada-layout[data-scada-theme="dark"] *::after {
+	box-sizing: border-box !important;
+	margin: 0;
+	padding: 0;
+}
+
+/* 2. 恢复必要的间距和布局 */
+.scada-layout[data-scada-theme="dark"] > * {
+	box-sizing: border-box !important;
+}
+
+/* 3. 关键容器 - 强制覆盖外部样式（但保留组件自身的padding） */
+.scada-layout[data-scada-theme="dark"] > .scada-header,
+.scada-layout[data-scada-theme="dark"] > .scada-footer {
+	color: #e2e8f0 !important;
+	margin: 0 !important;
+	/* 移除 padding: 0 !important - 让Header/Footer组件自己控制padding */
+}
+
+.scada-layout[data-scada-theme="dark"] .property-panel > .panel-header,
+.scada-layout[data-scada-theme="dark"] .component-library > .library-header,
+.scada-layout[data-scada-theme="dark"] .canvas-config-panel > .config-header {
+	color: #e2e8f0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+/* 4. 标题 - 强制覆盖外部样式 */
+.scada-layout[data-scada-theme="dark"] .scada-header h1,
+.scada-layout[data-scada-theme="dark"] .scada-header h2,
+.scada-layout[data-scada-theme="dark"] .scada-header h3,
+.scada-layout[data-scada-theme="dark"] .scada-header h4 {
+	color: #e2e8f0 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	font-weight: 600 !important;
+}
+
+/* 5. 表单元素 - 仅重置可能被外部污染的表单元素（排除我们的组件面板） */
+/* 只重置画布区域内的表单，不影响属性面板、组件库等侧边栏 */
+.scada-layout[data-scada-theme="dark"] .canvas-area input:not([class*="ant-"]):not([type="range"]):not([type="color"]):not([type="checkbox"]),
+.scada-layout[data-scada-theme="dark"] .canvas-area select:not([class*="ant-"]),
+.scada-layout[data-scada-theme="dark"] .canvas-area textarea:not([class*="ant-"]),
+.scada-layout[data-scada-theme="dark"] .canvas-area button:not([class*="ant-"]) {
+	-webkit-appearance: none !important;
+	-moz-appearance: none !important;
+	appearance: none !important;
+	outline: none !important;
+	border: none !important;
+	background: none !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	color: inherit !important;
+	font-family: inherit !important;
+	font-size: inherit !important;
+}
+
+/* 6. 文本元素 - 仅强制覆盖画布区域内的文本样式，保留属性面板样式 */
+.scada-layout[data-scada-theme="dark"] .canvas-area label,
+.scada-layout[data-scada-theme="dark"] .canvas-area span,
+.scada-layout[data-scada-theme="dark"] .canvas-area p,
+.scada-layout[data-scada-theme="dark"] .canvas-area div {
+	color: inherit !important;
+	font-family: inherit !important;
+	line-height: normal !important;
+}
+
+/* 7. 滚动条样式 - 保持主题一致性 */
+.scada-layout[data-scada-theme] ::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+.scada-layout[data-scada-theme] ::-webkit-scrollbar-track {
+	background: #0f172a;
+	border-radius: 4px;
+}
+.scada-layout[data-scada-theme] ::-webkit-scrollbar-thumb {
+	background: linear-gradient(180deg, #475569, #334155);
+	border-radius: 4px;
+	border: 2px solid #0f172a;
+	transition: background 0.2s;
+}
+.scada-layout[data-scada-theme] ::-webkit-scrollbar-thumb:hover {
+	background: linear-gradient(180deg, #3b82f6, #2563eb);
+}
+.scada-layout[data-scada-theme] ::-webkit-scrollbar-corner {
+	background: #0f172a;
+}
+
+/* 8. X6 画布选中效果 - 保留必要的 !important 覆盖第三方库 */
+.scada-layout .x6-node-selected rect {
+	stroke: #3b82f6 !important;
+	stroke-width: 2 !important;
+	filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) !important;
+}
+
+.scada-layout .x6-edge-selected path {
+	stroke: #3b82f6 !important;
+	stroke-width: 3 !important;
+}
+
+.scada-layout .x6-widget-selection-box {
+	border: 2px solid #3b82f6 !important;
+	background-color: rgba(59, 130, 246, 0.1) !important;
+}
+
+/* 9. Range 滑块样式 - 限定在 SCADA 容器内 */
+.scada-layout[data-scada-theme] input[type="range"] {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 100%;
+	height: 4px;
+	background: linear-gradient(90deg, #475569, #334155);
+	border-radius: 2px;
+	outline: none;
+	opacity: 0.9;
+	transition: opacity 0.2s;
+}
+
+.scada-layout[data-scada-theme] input[type="range"]:hover {
+	opacity: 1;
+}
+
+.scada-layout[data-scada-theme] input[type="range"]::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 16px;
+	height: 16px;
+	background: #8b5cf6;
+	border-radius: 50%;
+	cursor: pointer;
+	border: 2px solid #0f172a;
+	box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+	transition: all 0.2s;
+}
+
+.scada-layout[data-scada-theme] input[type="range"]::-webkit-slider-thumb:hover {
+	background: #a78bfa;
+	box-shadow: 0 0 12px rgba(139, 92, 246, 0.8);
+	transform: scale(1.1);
+}
+
+.scada-layout[data-scada-theme] input[type="range"]::-moz-range-thumb {
+	width: 16px;
+	height: 16px;
+	background: #8b5cf6;
+	border-radius: 50%;
+	cursor: pointer;
+	border: 2px solid #0f172a;
+	box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+	transition: all 0.2s;
+}
+
+.scada-layout[data-scada-theme] input[type="range"]::-moz-range-thumb:hover {
+	background: #a78bfa;
+	box-shadow: 0 0 12px rgba(139, 92, 246, 0.8);
+	transform: scale(1.1);
+}

@@ -1,0 +1,24 @@
+# 源文件
+src/
+public/
+
+# 配置文件
+vite.config.ts
+tsconfig.json
+tsconfig.node.json
+index.html
+
+# 开发依赖
+node_modules/
+.vscode/
+.idea/
+
+# 构建产物（保留 dist）
+# dist/
+
+# 其他
+*.log
+.DS_Store
+*.local
+.env
+.env.*
