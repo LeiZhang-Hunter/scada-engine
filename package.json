@@ -32,13 +32,11 @@
     "@antv/x6-plugin-snapline": "^2.1.0",
     "@vicons/carbon": "^0.13.0",
     "@vueuse/core": "^10.0.0",
-    "crypto-js": "^4.2.0",
     "echarts": "^5.5.0",
     "pinia": "^2.1.0",
     "vue": "^3.4.0"
   },
   "devDependencies": {
-    "@types/crypto-js": "^4.2.2",
     "@types/node": "^25.0.3",
     "@vitejs/plugin-vue": "^5.0.0",
     "less": "^4.2.0",
