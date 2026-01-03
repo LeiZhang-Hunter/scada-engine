@@ -34,8 +34,23 @@ class ComponentRegistryManager {
     // 注册IoT组件
     this.register(IoTComponents.LightComponent)
     this.register(IoTComponents.SwitchComponent)
-    this.register(IoTComponents.GaugeComponent)
     this.register(IoTComponents.EChartsGaugeComponent)
+    this.register(IoTComponents.EChartsLineComponent)
+    // 3D仿真工业组件
+    this.register(IoTComponents.Motor3DComponent)
+    this.register(IoTComponents.Valve3DComponent)
+    this.register(IoTComponents.Tank3DComponent)
+    this.register(IoTComponents.Pump3DComponent)
+    // 3D仿真扩展组件
+    this.register(IoTComponents.Conveyor3DComponent)
+    this.register(IoTComponents.AlarmLight3DComponent)
+    this.register(IoTComponents.TemperatureSensor3DComponent)
+    this.register(IoTComponents.Cylinder3DComponent)
+    // 3D仿真流体组件
+    this.register(IoTComponents.Pipe3DComponent)
+    this.register(IoTComponents.Filter3DComponent)
+    this.register(IoTComponents.HeatExchanger3DComponent)
+    this.register(IoTComponents.Tee3DComponent)
   }
 
   /**

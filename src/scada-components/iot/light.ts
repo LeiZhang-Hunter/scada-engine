@@ -1,35 +1,31 @@
 import type { ComponentConfig } from '../types'
-import { COMMON_ANIMATION_PROPS } from '../types'
 
 /**
- * 灯泡组件配置
+ * 灯泡组件配置（使用3D仿真效果）
  */
 export const LightComponent: ComponentConfig = {
   metadata: {
     id: 'light',
-    name: '灯泡',
+    name: '3D灯泡',
     category: 'iot',
     icon: '💡',
-    description: 'IoT灯泡控制组件',
-    version: '1.0.0'
+    description: '3D仿真IoT灯泡控制组件',
+    version: '2.0.0'
   },
-  shape: 'circle',
-  width: 60,
-  height: 60,
-  label: '💡',
+  shape: 'light-3d-vue',
+  width: 100,
+  height: 120,
+  label: '',
   attrs: {
     body: {
-      fill: '#fbbf24',
-      stroke: '#f59e0b',
-      strokeWidth: 2
-    },
-    label: {
-      fill: '#fff',
-      fontSize: 24
+      fill: 'transparent',
+      stroke: 'transparent'
     }
   },
   data: {
     type: 'light',
+    state: false,
+    color: '#fbbf24',
     deviceId: '',
     property: ''
   },
@@ -68,20 +64,24 @@ export const LightComponent: ComponentConfig = {
   },
   props: [
     {
-      key: 'fill',
-      label: '填充色',
-      type: 'color',
-      path: 'attrs.body.fill',
-      defaultValue: '#fbbf24',
-      description: '灯泡颜色'
+      key: 'state',
+      label: '灯泡状态',
+      type: 'select',
+      path: 'data.state',
+      defaultValue: false,
+      options: [
+        { label: '关闭', value: false },
+        { label: '开启', value: true }
+      ],
+      description: '灯泡开关状态'
     },
     {
-      key: 'stroke',
-      label: '边框色',
+      key: 'color',
+      label: '灯光颜色',
       type: 'color',
-      path: 'attrs.body.stroke',
-      defaultValue: '#f59e0b',
-      description: '边框颜色'
+      path: 'data.color',
+      defaultValue: '#fbbf24',
+      description: '灯泡发光颜色'
     },
     {
       key: 'deviceId',
@@ -98,8 +98,6 @@ export const LightComponent: ComponentConfig = {
       path: 'data.property',
       defaultValue: '',
       description: '绑定的设备属性名称'
-    },
-    // 使用公共动画属性
-    ...COMMON_ANIMATION_PROPS
+    }
   ]
 }

@@ -242,6 +242,10 @@ const updateDynamicProp = (prop: any, event: Event) => {
 		value = Number(target.value)
 	} else if (prop.type === 'boolean') {
 		value = (target as HTMLInputElement).checked
+	} else if (prop.type === 'select') {
+		// select 类型需要根据原始 options 中的类型来转换
+		const selectedOption = prop.options?.find((opt: any) => String(opt.value) === target.value)
+		value = selectedOption ? selectedOption.value : target.value
 	} else {
 		value = target.value
 	}

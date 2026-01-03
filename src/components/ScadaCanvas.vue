@@ -95,6 +95,21 @@ import PropertyPanel from './PropertyPanel.vue'
 import Footer from './Footer.vue'
 import WorkflowDialog from '../views/workflow/WorkflowDialog.vue'
 import EChartsGauge from '../scada-components/iot/EChartsGauge.vue'
+import EChartsLine from '../scada-components/iot/EChartsLine.vue'
+import Light3D from '../scada-components/iot/Light3D.vue'
+import Switch3D from '../scada-components/iot/Switch3D.vue'
+import Motor3D from '../scada-components/iot/Motor3D.vue'
+import Valve3D from '../scada-components/iot/Valve3D.vue'
+import Tank3D from '../scada-components/iot/Tank3D.vue'
+import Pump3D from '../scada-components/iot/Pump3D.vue'
+import Conveyor3D from '../scada-components/iot/Conveyor3D.vue'
+import AlarmLight3D from '../scada-components/iot/AlarmLight3D.vue'
+import TemperatureSensor3D from '../scada-components/iot/TemperatureSensor3D.vue'
+import Cylinder3D from '../scada-components/iot/Cylinder3D.vue'
+import Pipe3D from '../scada-components/iot/Pipe3D.vue'
+import Filter3D from '../scada-components/iot/Filter3D.vue'
+import HeatExchanger3D from '../scada-components/iot/HeatExchanger3D.vue'
+import Tee3D from '../scada-components/iot/Tee3D.vue'
 import { componentRegistry, canvasConfigManager } from '../scada-components'
 import {
 	saveToSession,
@@ -263,7 +278,353 @@ onMounted(() => {
 		}
 	})
 	
-	console.log('[Vue Shape] ECharts Vue 组件节点注册成功')
+	// 注册 ECharts 折线图 Vue 组件节点
+	register({
+		shape: 'echarts-line-vue',
+		width: 400,
+		height: 300,
+		component: EChartsLine,
+		ports: {
+			groups: {
+				top: {
+					position: 'top',
+					attrs: {
+						circle: {
+							r: 4,
+							magnet: true,
+							stroke: '#31d0c6',
+							strokeWidth: 2,
+							fill: '#fff'
+						}
+					}
+				},
+				right: {
+					position: 'right',
+					attrs: {
+						circle: {
+							r: 4,
+							magnet: true,
+							stroke: '#31d0c6',
+							strokeWidth: 2,
+							fill: '#fff'
+						}
+					}
+				},
+				bottom: {
+					position: 'bottom',
+					attrs: {
+						circle: {
+							r: 4,
+							magnet: true,
+							stroke: '#31d0c6',
+							strokeWidth: 2,
+							fill: '#fff'
+						}
+					}
+				},
+				left: {
+					position: 'left',
+					attrs: {
+						circle: {
+							r: 4,
+							magnet: true,
+							stroke: '#31d0c6',
+							strokeWidth: 2,
+							fill: '#fff'
+						}
+					}
+				}
+			},
+			items: [
+				{ id: 'port-top', group: 'top' },
+				{ id: 'port-right', group: 'right' },
+				{ id: 'port-bottom', group: 'bottom' },
+				{ id: 'port-left', group: 'left' }
+			]
+		}
+	})
+	
+	// 注册 3D 灯泡 Vue 组件节点
+	register({
+		shape: 'light-3d-vue',
+		width: 100,
+		height: 120,
+		component: Light3D,
+		ports: {
+			groups: {
+				left: {
+					position: 'left',
+					attrs: {
+						circle: {
+							r: 4,
+							magnet: true,
+							stroke: '#31d0c6',
+							strokeWidth: 2,
+							fill: '#fff'
+						}
+					}
+				},
+				right: {
+					position: 'right',
+					attrs: {
+						circle: {
+							r: 4,
+							magnet: true,
+							stroke: '#31d0c6',
+							strokeWidth: 2,
+							fill: '#fff'
+						}
+					}
+				}
+			},
+			items: [
+				{ id: 'port-left', group: 'left' },
+				{ id: 'port-right', group: 'right' }
+			]
+		}
+	})
+	
+	// 注册 3D 开关 Vue 组件节点
+	register({
+		shape: 'switch-3d-vue',
+		width: 140,
+		height: 100,
+		component: Switch3D,
+		ports: {
+			groups: {
+				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
+			},
+			items: [
+				{ id: 'port-left', group: 'left' },
+				{ id: 'port-right', group: 'right' }
+			]
+		}
+	})
+	
+	// 注册 3D 电机 Vue 组件节点
+	register({
+		shape: 'motor-3d-vue',
+		width: 140,
+		height: 110,
+		component: Motor3D,
+		ports: {
+			groups: {
+				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
+			},
+			items: [
+				{ id: 'port-left', group: 'left' },
+				{ id: 'port-right', group: 'right' }
+			]
+		}
+	})
+	
+	// 注册 3D 阀门 Vue 组件节点
+	register({
+		shape: 'valve-3d-vue',
+		width: 100,
+		height: 140,
+		component: Valve3D,
+		ports: {
+			groups: {
+				top: { position: 'top', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				bottom: { position: 'bottom', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
+			},
+			items: [
+				{ id: 'port-top', group: 'top' },
+				{ id: 'port-bottom', group: 'bottom' }
+			]
+		}
+	})
+	
+	// 注册 3D 储罐 Vue 组件节点
+	register({
+		shape: 'tank-3d-vue',
+		width: 120,
+		height: 160,
+		component: Tank3D,
+		ports: {
+			groups: {
+				top: { position: 'top', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				bottom: { position: 'bottom', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
+			},
+			items: [
+				{ id: 'port-top', group: 'top' },
+				{ id: 'port-right', group: 'right' },
+				{ id: 'port-bottom', group: 'bottom' }
+			]
+		}
+	})
+	
+	// 注册 3D 水泵 Vue 组件节点
+	register({
+		shape: 'pump-3d-vue',
+		width: 160,
+		height: 120,
+		component: Pump3D,
+		ports: {
+			groups: {
+				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
+			},
+			items: [
+				{ id: 'port-left', group: 'left' },
+				{ id: 'port-right', group: 'right' }
+			]
+		}
+	})
+	
+	// 注册 3D 传送带 Vue 组件节点
+	register({
+		shape: 'conveyor-3d-vue',
+		width: 220,
+		height: 100,
+		component: Conveyor3D,
+		ports: {
+			groups: {
+				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
+			},
+			items: [
+				{ id: 'port-left', group: 'left' },
+				{ id: 'port-right', group: 'right' }
+			]
+		}
+	})
+	
+	// 注册 3D 报警灯 Vue 组件节点
+	register({
+		shape: 'alarm-light-3d-vue',
+		width: 100,
+		height: 120,
+		component: AlarmLight3D,
+		ports: {
+			groups: {
+				bottom: { position: 'bottom', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
+			},
+			items: [
+				{ id: 'port-bottom', group: 'bottom' }
+			]
+		}
+	})
+	
+	// 注册 3D 温度传感器 Vue 组件节点
+	register({
+		shape: 'temperature-sensor-3d-vue',
+		width: 100,
+		height: 140,
+		component: TemperatureSensor3D,
+		ports: {
+			groups: {
+				bottom: { position: 'bottom', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
+			},
+			items: [
+				{ id: 'port-bottom', group: 'bottom' }
+			]
+		}
+	})
+	
+	// 注册 3D 气缸 Vue 组件节点
+	register({
+		shape: 'cylinder-3d-vue',
+		width: 80,
+		height: 160,
+		component: Cylinder3D,
+		ports: {
+			groups: {
+				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
+			},
+			items: [
+				{ id: 'port-left', group: 'left' },
+				{ id: 'port-right', group: 'right' }
+			]
+		}
+	})
+	
+	// 注册 3D 管道 Vue 组件节点
+	register({
+		shape: 'pipe-3d-vue',
+		width: 220,
+		height: 60,
+		component: Pipe3D,
+		ports: {
+			groups: {
+				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
+			},
+			items: [
+				{ id: 'port-left', group: 'left' },
+				{ id: 'port-right', group: 'right' }
+			]
+		}
+	})
+	
+	// 注册 3D 过滤器 Vue 组件节点
+	register({
+		shape: 'filter-3d-vue',
+		width: 140,
+		height: 120,
+		component: Filter3D,
+		ports: {
+			groups: {
+				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
+			},
+			items: [
+				{ id: 'port-left', group: 'left' },
+				{ id: 'port-right', group: 'right' }
+			]
+		}
+	})
+	
+	// 注册 3D 换热器 Vue 组件节点
+	register({
+		shape: 'heat-exchanger-3d-vue',
+		width: 160,
+		height: 140,
+		component: HeatExchanger3D,
+		ports: {
+			groups: {
+				top: { position: 'top', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				bottom: { position: 'bottom', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
+			},
+			items: [
+				{ id: 'port-top', group: 'top' },
+				{ id: 'port-bottom', group: 'bottom' },
+				{ id: 'port-left', group: 'left' },
+				{ id: 'port-right', group: 'right' }
+			]
+		}
+	})
+	
+	// 注册 3D 三通 Vue 组件节点
+	register({
+		shape: 'tee-3d-vue',
+		width: 120,
+		height: 120,
+		component: Tee3D,
+		ports: {
+			groups: {
+				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				top: { position: 'top', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
+				bottom: { position: 'bottom', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
+			},
+			items: [
+				{ id: 'port-left', group: 'left' },
+				{ id: 'port-right', group: 'right' },
+				{ id: 'port-top', group: 'top' },
+				{ id: 'port-bottom', group: 'bottom' }
+			]
+		}
+	})
+	
+	console.log('[Vue Shape] 所有3D仿真组件节点注册成功')
 
 	// 初始化 X6 画布
 	const container = canvasAreaRef.value.containerRef
@@ -720,8 +1081,8 @@ const handleUpdateNode = (data: any) => {
 		const cleanedData = { ...data.data }
 		delete cleanedData.position
 		delete cleanedData.size
-		// 使用 store.set 完全替换 data
-		selectedNode.value.store.set('data', cleanedData)
+		// 使用 setData 方法，这样会触发 change:data 事件
+		selectedNode.value.setData(cleanedData)
 	}
 }
 

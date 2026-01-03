@@ -1,40 +1,32 @@
 import type { ComponentConfig } from '../types'
-import { COMMON_ANIMATION_PROPS } from '../types'
 
 /**
- * 开关组件配置
+ * 3D开关组件配置
  */
 export const SwitchComponent: ComponentConfig = {
   metadata: {
     id: 'switch',
-    name: '开关',
+    name: '3D开关',
     category: 'iot',
     icon: '🔘',
-    description: 'IoT开关控制组件',
-    version: '1.0.0'
+    description: '3D仿真IoT开关控制组件',
+    version: '2.0.0'
   },
-  shape: 'rect',
-  width: 100,
-  height: 50,
-  label: '开关',
+  shape: 'switch-3d-vue',
+  width: 140,
+  height: 100,
+  label: '',
   attrs: {
     body: {
-      fill: '#64748b',
-      stroke: '#475569',
-      strokeWidth: 2,
-      rx: 25,
-      ry: 25
-    },
-    label: {
-      fill: '#fff',
-      fontSize: 14
+      fill: 'transparent',
+      stroke: 'transparent'
     }
   },
   data: {
     type: 'switch',
+    state: false,
     deviceId: '',
-    property: '',
-    state: false
+    property: ''
   },
   // 接线柱配置 - 左右两侧
   ports: {
@@ -71,20 +63,16 @@ export const SwitchComponent: ComponentConfig = {
   },
   props: [
     {
-      key: 'fill',
-      label: '填充色',
-      type: 'color',
-      path: 'attrs.body.fill',
-      defaultValue: '#64748b',
-      description: '开关颜色'
-    },
-    {
-      key: 'stroke',
-      label: '边框色',
-      type: 'color',
-      path: 'attrs.body.stroke',
-      defaultValue: '#475569',
-      description: '边框颜色'
+      key: 'state',
+      label: '开关状态',
+      type: 'select',
+      path: 'data.state',
+      defaultValue: false,
+      options: [
+        { label: '关闭', value: false },
+        { label: '开启', value: true }
+      ],
+      description: '开关当前状态'
     },
     {
       key: 'deviceId',
@@ -101,16 +89,6 @@ export const SwitchComponent: ComponentConfig = {
       path: 'data.property',
       defaultValue: '',
       description: '绑定的设备属性名称'
-    },
-    {
-      key: 'state',
-      label: '开关状态',
-      type: 'boolean',
-      path: 'data.state',
-      defaultValue: false,
-      description: '开关当前状态'
-    },
-    // 使用公共动画属性
-    ...COMMON_ANIMATION_PROPS
+    }
   ]
 }
