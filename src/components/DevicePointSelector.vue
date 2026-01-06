@@ -125,6 +125,7 @@ import type { Device, DevicePoint } from '../types/device'
 const props = defineProps<{
 	visible: boolean     // 是否显示弹窗
 	modelValue?: string  // 格式: deviceId:pointId
+	deviceData?: any     // 设备数据，如果未提供则使用mock数据
 }>()
 
 const emit = defineEmits<{
@@ -134,7 +135,7 @@ const emit = defineEmits<{
 }>()
 
 // 设备列表
-const devices = ref(mockDevices)
+const devices = ref(props.deviceData?.devices || mockDevices)
 const selectedDevice = ref<Device | null>(null)
 const selectedPoint = ref<DevicePoint | null>(null)
 const deviceSearchQuery = ref('')
@@ -143,10 +144,10 @@ const pointSearchQuery = ref('')
 // 初始化选中状态
 if (props.modelValue) {
 	const [deviceId, pointId] = props.modelValue.split(':')
-	const device = devices.value.find(d => d.id === deviceId)
+	const device = devices.value.find((d: Device) => d.id === deviceId)
 	if (device) {
 		selectedDevice.value = device
-		selectedPoint.value = device.points.find(p => p.id === pointId) || null
+		selectedPoint.value = device.points.find((p: DevicePoint) => p.id === pointId) || null
 	}
 }
 
@@ -154,7 +155,7 @@ if (props.modelValue) {
 const filteredDevices = computed(() => {
 	if (!deviceSearchQuery.value) return devices.value
 	const query = deviceSearchQuery.value.toLowerCase()
-	return devices.value.filter(device => 
+	return devices.value.filter((device: Device) => 
 		device.name.toLowerCase().includes(query) ||
 		device.code.toLowerCase().includes(query)
 	)

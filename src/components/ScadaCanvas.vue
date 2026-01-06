@@ -62,6 +62,7 @@
 				ref="propertyPanelRef"
 				:selected-node="selectedNode"
 				:selected-edge="selectedEdge"
+				:device-data="props.deviceData"
 				@update-node="handleUpdateNode"
 				@delete-node="handleDeleteNode"
 				@update-edge="handleUpdateEdge"
@@ -130,25 +131,29 @@ defineOptions({
 	inheritAttrs: true
 })
 
-// 导出接口供外部使用
-export interface CustomFooterConfig {
+// 定义接口类型
+interface CustomFooterConfig {
 	copyright?: string
 	license?: string
 	contact?: string
 }
 
-export interface ScadaCanvasProps {
+interface ScadaCanvasProps {
 	authCode?: string // 软件授权码
 	customFooter?: CustomFooterConfig // 自定义 Footer 配置
 	previewMode?: boolean // 预览模式
-	onSave?: () => void | Promise<void> // 自定义保存回调
+	onSave?: (() => void) | (() => Promise<void>) // 自定义保存回调
+	deviceData?: any // 设备数据
+	dataSource?: any // 数据源配置
 }
 
 const props = withDefaults(defineProps<ScadaCanvasProps>(), {
 	authCode: '',
 	customFooter: undefined,
 	previewMode: false,
-	onSave: undefined
+	onSave: undefined,
+	deviceData: () => ({}),
+	dataSource: () => ({})
 })
 
 // 定义 emit 事件
@@ -1144,25 +1149,26 @@ const handleUpdateEdge = (data: any) => {
 	// 更新属性
 	if (data.attrs) {
 		Object.keys(data.attrs).forEach(key => {
-			const attrValue = data.attrs[key]
+			const attrValue = data.attrs[key];
 			if (typeof attrValue === 'object') {
 				// 如果是对象，遍历子属性
 				Object.keys(attrValue).forEach(subKey => {
-					selectedEdge.value!.attr(`${key}/${subKey}`, attrValue[subKey])
+					selectedEdge.value!.attr(`${key}/${subKey}`, attrValue[subKey]);
 					// 更新保存的原始样式
 					if (selectedEdge.value!.data?.originalAttrs?.[key]) {
-						selectedEdge.value!.data.originalAttrs[key][subKey] = attrValue[subKey]
+						selectedEdge.value!.data.originalAttrs[key][subKey] = attrValue[subKey];
 					}
-				})
+				});
 			} else {
-				selectedEdge.value!.attr(key, attrValue)
+				selectedEdge.value!.attr(key, attrValue);
 			}
-		})
+		});
 		
 		// 重新应用选中高亮效果（只改变颜色）
-		const currentAttrs = selectedEdge.value.getAttrs()
-		selectedEdge.value.data = { ...selectedEdge.value.data, originalAttrs: currentAttrs }
-		selectedEdge.value.attr('line/stroke', '#3b82f6')
+		const currentAttrs = selectedEdge.value.getAttrs();
+		const newData = Object.assign({}, selectedEdge.value.data, { originalAttrs: currentAttrs });
+		selectedEdge.value.setData(newData);
+		selectedEdge.value.attr('line/stroke', '#3b82f6');
 	}
 	
 	// 更新路由
@@ -1182,7 +1188,7 @@ const handleUpdateEdge = (data: any) => {
 	
 	// 更新data
 	if (data.data) {
-		selectedEdge.value.setData({ ...selectedEdge.value.data, ...data.data })
+		selectedEdge.value.setData(Object.assign({}, selectedEdge.value.data, data.data))
 	}
 }
 
@@ -1428,7 +1434,10 @@ const handleSave = async () => {
 		// 如果有自定义保存回调，优先使用
 		if (props.onSave) {
 			console.log('[ScadaCanvas] 调用自定义 onSave 回调')
-			await props.onSave()
+			const result = props.onSave()
+			if (result instanceof Promise) {
+				await result
+			}
 			console.log('[ScadaCanvas] 自定义 onSave 回调执行完成')
 			return
 		}
@@ -1689,9 +1698,9 @@ defineExpose({
 	/** 保存画布数据到 sessionStorage */
 	save: handleSave,
 	/** 触发文件选择，导入 JSON 数据 */
-	import: handleImport,
+	importFile: handleImport,
 	/** 导出画布数据为 JSON 文件 */
-	export: handleExport,
+	exportFile: handleExport,
 	
 	// === 视图操作 ===
 	/** 跳转到预览页面 */
@@ -1847,6 +1856,55 @@ defineExpose({
 	/** 设置背景颜色 */
 	setBackgroundColor: (color: string) => {
 		canvasConfigManager.updateBackground({ color })
+	},
+	
+	// === 数据集成 ===
+	/** 更新设备数据 */
+	updateDeviceData: (deviceData: any) => {
+		// 更新节点上的设备数据
+		if (graph && deviceData?.devices) {
+			deviceData.devices.forEach((device: any) => {
+				device.points?.forEach((point: any) => {
+					// 遍历画布上的所有节点，查找与设备点位绑定的节点
+					if (graph) {
+						graph.getNodes().forEach((node: any) => {
+							const nodeData = node.getData()
+							// 检查节点是否有绑定配置
+							if (nodeData?.bindings) {
+								Object.entries(nodeData.bindings).forEach(([attribute, binding]: [string, any]) => {
+									if (binding.deviceId === device.id && binding.dataPoint === point.id) {
+										// 更新节点的相应属性
+										const value = point.value
+																
+										// 特殊处理文本节点
+										if (attribute === 'attrs/text/text') {
+											node.attr('text/text', value)
+										}
+										// 特殊处理颜色节点
+										else if (attribute === 'attrs/body/fill') {
+											node.attr('body/fill', value)
+										}
+										// 其他属性更新
+										else {
+											// 根据绑定的属性路径更新节点
+											const keys = attribute.split('.')
+											let target: any = node
+											for (let i = 0; i < keys.length - 1; i++) {
+												target = target[keys[i]]
+											}
+											const lastKey = keys[keys.length - 1]
+											if (target && lastKey) {
+												target[lastKey] = value
+											}
+										}
+									}
+								})
+							}
+						})
+					}
+				})
+			})
+		}
 	},
 	
 	// === 动画控制 ===

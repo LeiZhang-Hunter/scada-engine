@@ -126,6 +126,7 @@
 								:is-collapsed="isBindingCollapsed(index)"
 								:node-properties="getNodeProperties()"
 								:event-list="eventList"
+								:device-data="props.deviceData"
 								@toggle-collapse="toggleBindingCollapse(index)"
 								@remove="removeBinding(index)"
 								@update-field="(field, e) => updateBindingField(index, field, e)"
@@ -184,6 +185,7 @@ import { generateEventId } from '../utils'
 interface Props {
 	selectedNode: Node | null
 	selectedEdge: Edge | null
+	deviceData?: any // 设备数据
 }
 
 const props = defineProps<Props>()

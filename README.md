@@ -12,6 +12,7 @@
 - 响应式：基于 Vue 3 Composition API
 - 动画引擎：支持节点和连线动画效果
 - 预览模式：支持编辑模式和预览模式切换
+- 数据集成：支持多种数据源集成方式
 
 ## 安装
 
@@ -107,10 +108,10 @@ const handleNodeUpdate = (data: any) => {
 - 开关（switch）：支持设备控制
 
 #### 画布配置
-- 画布尺寸：支持多种预设尺寸（1920x1080、1366x768等）
+- 画布尺寸：支持多种预设尺寸（1920x1080、1366x768等）和自定义尺寸
 - 背景设置：支持颜色、图片背景
 - 网格配置：支持网格显示、类型、大小设置
-- 缩放控制：支持画布缩放
+- 缩放控制：支持画布缩放和自适应屏幕
 - 参考线：支持对齐参考线
 - 磁吸功能：支持节点磁吸对齐
 
@@ -275,9 +276,152 @@ import type {
   EventConfig, 
   BindingConfig,
   ComponentConfig,
-  ComponentCategory 
+  ComponentCategory,
+  Device,
+  DevicePoint,
+  DeviceList,
+  PointDataType,
+  PointAccessMode
+} from '@nywqs/scada-engine'
+
+// 设备点位相关枚举
+import {
+  DeviceStatus,
+  DeviceType,
+  PointDataType,
+  PointAccessMode
 } from '@nywqs/scada-engine'
 ```
+
+## 数据集成
+
+SCADA引擎支持多种方式集成设备数据，实现数据绑定和实时更新。
+
+### 1. 通过组件属性传递数据
+
+```vue
+<template>
+  <ScadaCanvas 
+    :device-data="deviceData"
+    :data-source="dataConfig"
+  />
+</template>
+
+<script setup lang="ts">
+import { ScadaCanvas } from '@nywqs/scada-engine'
+
+// 设备数据
+const deviceData = {
+  devices: [
+    {
+      id: 'device_001',
+      name: '1号温控设备',
+      status: 'online',
+      points: [
+        {
+          id: 'point_001_01',
+          name: '当前温度',
+          value: 25.5,
+          dataType: 'number',
+          unit: '°C'
+        }
+      ]
+    }
+  ]
+}
+
+// 数据源配置
+const dataConfig = {
+  type: 'websocket', // 或 'mqtt', 'http', 'sse'
+  url: 'ws://localhost:8080/device-data',
+  interval: 1000 // 更新间隔(毫秒)
+}
+</script>
+```
+
+### 2. 通过暴露的方法更新数据
+
+```vue
+<template>
+  <ScadaCanvas ref="scadaRef" />
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { ScadaCanvas } from '@nywqs/scada-engine'
+
+const scadaRef = ref()
+
+// 获取设备数据并更新到画布
+const updateDeviceData = async () => {
+  // 从主应用的API获取设备数据
+  const deviceData = await fetchDeviceDataFromAPI()
+  
+  // 通过暴露的方法更新到画布组件
+  scadaRef.value?.updateDeviceData(deviceData)
+}
+
+onMounted(() => {
+  // 定时更新设备数据
+  setInterval(updateDeviceData, 1000)
+})
+</script>
+```
+
+### 3. 使用事件绑定方式
+
+```vue
+<template>
+  <ScadaCanvas 
+    @data-request="handleDataRequest"
+    @data-update="handleDataUpdate"
+  />
+</template>
+
+<script setup lang="ts">
+import { ScadaCanvas } from '@nywqs/scada-engine'
+
+// 当画布需要数据时触发
+const handleDataRequest = (requestData: any) => {
+  // 根据请求参数获取对应设备数据
+  const deviceData = getDeviceData(requestData.deviceIds)
+  
+  // 返回数据给画布
+  return deviceData
+}
+
+// 当画布数据更新时触发
+const handleDataUpdate = (updatedData: any) => {
+  // 将更新的数据发送到主应用的设备系统
+  updateDeviceValues(updatedData)
+}
+</script>
+```
+
+### 4. 数据格式要求
+
+设备数据应遵循以下格式：
+
+```typescript
+interface DeviceData {
+  devices: Array<{
+    id: string        // 设备唯一标识
+    name: string      // 设备名称
+    status: 'online' | 'offline' | 'error' | 'maintenance'
+    points: Array<{
+      id: string      // 点位唯一标识
+      name: string    // 点位名称
+      value: any      // 点位值
+      dataType: 'number' | 'boolean' | 'string'
+      unit?: string   // 单位
+      quality: 'good' | 'bad' | 'uncertain' // 数据质量
+      updateTime: string // 更新时间
+    }>
+  }>
+}
+```
+
+推荐使用事件绑定方式或数据绑定配置，这两种方式可以实现主应用与SCADA引擎的双向数据同步，既灵活又高效。
 
 ## 使用示例
 
@@ -471,6 +615,18 @@ npm publish
 - major (x.0.0)：破坏性更新、重大重构
 
 ## 版本历史
+
+### 1.1.21 (2026-01-06)
+- 设备数据集成：支持通过deviceData属性和updateDeviceData方法集成外部设备数据
+- 修复预览按钮事件触发问题
+- 优化路由跳转逻辑
+
+### 1.1.20 (2026-01-06)
+- 画布自适应缩放：支持不同分辨率设备自动适配显示
+- 组件库折叠展开：基础组件和IoT组件分组可收缩
+- 组件库三列布局：优化组件展示，更紧凑的空间利用
+- 画布自定义尺寸：支持800-7680px宽度，600-4320px高度
+- 设备点位类型导出：完整的Device、DevicePoint等类型定义
 
 ### 1.1.11 (2025-12-30)
 - 修复预览按钮事件触发问题

@@ -39,6 +39,7 @@
 			<DevicePointSelector
 				v-model:visible="showSelector"
 				v-model="bindingValue"
+				:device-data="deviceDataComputed"
 				@confirm="handlePointSelect"
 			/>
 			<div class="property-item">
@@ -80,7 +81,7 @@
 import { ref, watch, computed } from 'vue'
 import DevicePointSelector from './DevicePointSelector.vue'
 import MappingConfigurator from './MappingConfigurator.vue'
-import { getDeviceById, getPointById } from '../mock/deviceData'
+import { getDeviceById as getMockDeviceById, getPointById as getMockPointById } from '../mock/deviceData'
 import type { Device, DevicePoint } from '../types/device'
 import { MappingType, ValueType, type BindingConfig, type MappingConfig } from '../types/binding'
 
@@ -95,6 +96,7 @@ const props = defineProps<{
 	index: number
 	isCollapsed: boolean
 	nodeProperties: NodeProperty[]
+	deviceData?: any
 }>()
 
 const emit = defineEmits<{
@@ -110,6 +112,11 @@ const showMappingConfig = ref(false)
 const localMapping = ref<MappingConfig>(props.binding.mapping || { 
 	type: MappingType.DIRECT,
 	valueType: ValueType.NUMBER
+})
+
+// 使用传递的设备数据
+const deviceDataComputed = computed(() => {
+	return props.deviceData || {}
 })
 
 // 监听外部变化
@@ -130,8 +137,24 @@ const selectedPointInfo = computed(() => {
 	const [deviceId, pointId] = bindingValue.value.split(':')
 	if (!deviceId || !pointId) return null
 	
-	const device = getDeviceById(deviceId)
-	const point = device ? getPointById(deviceId, pointId) : null
+	// 优先使用传递的设备数据，如果不存在则使用mock数据
+	let device = null
+	let point = null
+	
+	if (props.deviceData && props.deviceData.devices) {
+		device = props.deviceData.devices.find((d: any) => d.id === deviceId)
+		if (device) {
+			point = device.points?.find((p: any) => p.id === pointId) || null
+		}
+	}
+	
+	// 如果在传递的设备数据中没找到，尝试使用mock数据
+	if (!device) {
+		device = getMockDeviceById(deviceId)
+		if (device) {
+			point = getMockPointById(deviceId, pointId)
+		}
+	}
 	
 	if (!device || !point) return null
 	
