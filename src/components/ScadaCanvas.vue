@@ -18,6 +18,7 @@
 			@save="handleSave"
 			@import="handleImport"
 			@workflow="handleWorkflow"
+			@data-source="handleDataSource"
 			@preview="handlePreview"
 			@export="handleExport"
 			@zoom-in="zoomIn"
@@ -48,6 +49,8 @@
 			<!-- 左侧组件库（仅编辑模式） -->
 			<ComponentLibrary
 				v-if="!props.previewMode"
+				:is-collapsed="leftPanelCollapsed"
+				@update:collapsed="leftPanelCollapsed = $event"
 				@add-component="handleAddNode"
 			/>
 
@@ -62,7 +65,9 @@
 				ref="propertyPanelRef"
 				:selected-node="selectedNode"
 				:selected-edge="selectedEdge"
-				:device-data="props.deviceData"
+				:device-data="mergedDeviceData"
+				:is-collapsed="rightPanelCollapsed"
+				@update:collapsed="rightPanelCollapsed = $event"
 				@update-node="handleUpdateNode"
 				@delete-node="handleDeleteNode"
 				@update-edge="handleUpdateEdge"
@@ -80,11 +85,30 @@
 			:scada-graph="graph"
 			@close="showWorkflowDialog = false"
 		/>
+		
+		<!-- 数据源管理对话框（仅编辑模式） -->
+		<DataSourceDialog
+			v-if="showDataSourceDialog && !props.previewMode"
+			:data-sources="dataSources"
+			@close="showDataSourceDialog = false"
+			@add="handleAddDataSource"
+			@save="handleSaveDataSource"
+			@delete="handleDeleteDataSource"
+		/>
+		
+		<!-- 右键菜单（仅编辑模式） -->
+		<ContextMenu
+			v-if="!props.previewMode"
+			v-model:visible="contextMenu.visible"
+			:position="contextMenu.position"
+			:menu-items="contextMenu.items"
+			@menu-click="handleContextMenuClick"
+		/>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick, computed, provide } from 'vue'
 import { Graph } from '@antv/x6'
 import { Selection } from '@antv/x6-plugin-selection'
 import { Snapline } from '@antv/x6-plugin-snapline'
@@ -95,27 +119,14 @@ import CanvasArea from './CanvasArea.vue'
 import PropertyPanel from './PropertyPanel.vue'
 import Footer from './Footer.vue'
 import WorkflowDialog from '../views/workflow/WorkflowDialog.vue'
-import EChartsGauge from '../scada-components/iot/EChartsGauge.vue'
-import EChartsLine from '../scada-components/iot/EChartsLine.vue'
-import Light3D from '../scada-components/iot/Light3D.vue'
-import Switch3D from '../scada-components/iot/Switch3D.vue'
-import Motor3D from '../scada-components/iot/Motor3D.vue'
-import Valve3D from '../scada-components/iot/Valve3D.vue'
-import Tank3D from '../scada-components/iot/Tank3D.vue'
-import Pump3D from '../scada-components/iot/Pump3D.vue'
-import Conveyor3D from '../scada-components/iot/Conveyor3D.vue'
-import AlarmLight3D from '../scada-components/iot/AlarmLight3D.vue'
-import TemperatureSensor3D from '../scada-components/iot/TemperatureSensor3D.vue'
-import Cylinder3D from '../scada-components/iot/Cylinder3D.vue'
-import Pipe3D from '../scada-components/iot/Pipe3D.vue'
-import Filter3D from '../scada-components/iot/Filter3D.vue'
-import HeatExchanger3D from '../scada-components/iot/HeatExchanger3D.vue'
-import Tee3D from '../scada-components/iot/Tee3D.vue'
+import DataSourceDialog from './DataSourceDialog.vue'
+import ContextMenu from './ContextMenu.vue'
+import type { MenuItem } from './ContextMenu.vue'
 import { componentRegistry, canvasConfigManager } from '../scada-components'
 import {
-	saveToSession,
-	loadFromSession,
-	removeFromSession,
+	saveToLocal,
+	loadFromLocal,
+	removeFromLocal,
 	STORAGE_KEYS,
 	exportToJSON,
 	showMessage,
@@ -124,6 +135,7 @@ import {
 	getCurrentTimestamp
 } from '../utils'
 import { animationEngine } from '../utils/animationEngine'
+import { dataSourceManager, type DataSource } from '../services/dataSourceManager'
 
 // 明确组件选项
 defineOptions({
@@ -165,7 +177,43 @@ const selectedEdge = ref<any>(null)
 const selectedNodesCount = ref<number>(0) // 选中节点数量
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const showWorkflowDialog = ref(false)
+const showDataSourceDialog = ref(false)  // 数据源管理对话框
+const leftPanelCollapsed = ref(false)  // 左侧面板折叠状态
+const rightPanelCollapsed = ref(false) // 右侧面板折叠状态
 let graph: Graph | null = null
+
+// 右键菜单状态
+const contextMenu = ref<{
+	visible: boolean
+	position: { x: number; y: number }
+	items: MenuItem[]
+	targetCell: any
+}>({
+	visible: false,
+	position: { x: 0, y: 0 },
+	items: [],
+	targetCell: null
+})
+
+// 数据源列表
+const dataSources = ref<DataSource[]>([])
+
+// 合并外部和数据源的 deviceData
+const mergedDeviceData = computed(() => {
+	// 优先使用外部传入的 deviceData
+	if (props.deviceData && Object.keys(props.deviceData).length > 0) {
+		return props.deviceData
+	}
+	
+	// 否则使用数据源管理器中的数据
+	const devices = dataSourceManager.getAllDevices().map(item => ({
+		...item.device,
+		_dataSourceId: item.dataSourceId,
+		_dataSourceName: item.dataSourceName
+	}))
+	
+	return { devices }
+})
 
 // 自动计算适合的缩放比例
 const calculateFitScale = () => {
@@ -200,6 +248,27 @@ onMounted(() => {
 	// 获取画布配置
 	const canvasConfig = canvasConfigManager.getConfig()
 
+	// 响应式处理：小屏幕时默认折叠侧边栏
+	const handlePanelResize = () => {
+		const width = window.innerWidth
+		if (width < 1024) {
+			// 小屏幕：自动折叠两侧面板
+			leftPanelCollapsed.value = true
+			rightPanelCollapsed.value = true
+		} else if (width < 1440) {
+			// 中等屏幕：只折叠左侧面板
+			leftPanelCollapsed.value = true
+			rightPanelCollapsed.value = false
+		}
+		// 大屏幕：保持当前状态
+	}
+
+	// 初始化时检查屏幕尺寸
+	handlePanelResize()
+
+	// 监听窗口大小变化
+	window.addEventListener('resize', handlePanelResize)
+
 	// 注册支持流动动画的边
 	Graph.registerEdge('animated-edge', {
 		inherit: 'edge',
@@ -216,7 +285,7 @@ onMounted(() => {
 				selector: 'wrap',
 				attrs: {
 					fill: 'none',
-					stroke: 'transparent',
+					stroke: 'rgba(0,0,0,0)',
 					strokeWidth: 20
 				}
 			},
@@ -244,419 +313,21 @@ onMounted(() => {
 		}
 	}, true)
 
-	// 注册 ECharts Vue 组件节点
-	register({
-		shape: 'echarts-vue',
-		width: 300,
-		height: 300,
-		component: EChartsGauge,
-		ports: {
-			groups: {
-				top: {
-					position: 'top',
-					attrs: {
-						circle: {
-							r: 4,
-							magnet: true,
-							stroke: '#31d0c6',
-							strokeWidth: 2,
-							fill: '#fff'
-						}
-					}
-				},
-				right: {
-					position: 'right',
-					attrs: {
-						circle: {
-							r: 4,
-							magnet: true,
-							stroke: '#31d0c6',
-							strokeWidth: 2,
-							fill: '#fff'
-						}
-					}
-				},
-				bottom: {
-					position: 'bottom',
-					attrs: {
-						circle: {
-							r: 4,
-							magnet: true,
-							stroke: '#31d0c6',
-							strokeWidth: 2,
-							fill: '#fff'
-						}
-					}
-				},
-				left: {
-					position: 'left',
-					attrs: {
-						circle: {
-							r: 4,
-							magnet: true,
-							stroke: '#31d0c6',
-							strokeWidth: 2,
-							fill: '#fff'
-						}
-					}
-				}
-			},
-			items: [
-				{ id: 'port-top', group: 'top' },
-				{ id: 'port-right', group: 'right' },
-				{ id: 'port-bottom', group: 'bottom' },
-				{ id: 'port-left', group: 'left' }
-			]
+	// ========== 动态注册 Vue 组件 ==========
+	// 遍历组件注册表，自动注册所有包含 Vue 组件的配置
+	const allComponents = componentRegistry.getAllComponents()
+	Object.values(allComponents).forEach((config) => {
+		// 只注册包含 component 字段的组件（Vue Shape）
+		if (config.component) {
+			register({
+				shape: config.shape,
+				width: config.width,
+				height: config.height,
+				component: config.component,
+				ports: config.ports
+			})
 		}
 	})
-	
-	// 注册 ECharts 折线图 Vue 组件节点
-	register({
-		shape: 'echarts-line-vue',
-		width: 400,
-		height: 300,
-		component: EChartsLine,
-		ports: {
-			groups: {
-				top: {
-					position: 'top',
-					attrs: {
-						circle: {
-							r: 4,
-							magnet: true,
-							stroke: '#31d0c6',
-							strokeWidth: 2,
-							fill: '#fff'
-						}
-					}
-				},
-				right: {
-					position: 'right',
-					attrs: {
-						circle: {
-							r: 4,
-							magnet: true,
-							stroke: '#31d0c6',
-							strokeWidth: 2,
-							fill: '#fff'
-						}
-					}
-				},
-				bottom: {
-					position: 'bottom',
-					attrs: {
-						circle: {
-							r: 4,
-							magnet: true,
-							stroke: '#31d0c6',
-							strokeWidth: 2,
-							fill: '#fff'
-						}
-					}
-				},
-				left: {
-					position: 'left',
-					attrs: {
-						circle: {
-							r: 4,
-							magnet: true,
-							stroke: '#31d0c6',
-							strokeWidth: 2,
-							fill: '#fff'
-						}
-					}
-				}
-			},
-			items: [
-				{ id: 'port-top', group: 'top' },
-				{ id: 'port-right', group: 'right' },
-				{ id: 'port-bottom', group: 'bottom' },
-				{ id: 'port-left', group: 'left' }
-			]
-		}
-	})
-	
-	// 注册 3D 灯泡 Vue 组件节点
-	register({
-		shape: 'light-3d-vue',
-		width: 100,
-		height: 120,
-		component: Light3D,
-		ports: {
-			groups: {
-				left: {
-					position: 'left',
-					attrs: {
-						circle: {
-							r: 4,
-							magnet: true,
-							stroke: '#31d0c6',
-							strokeWidth: 2,
-							fill: '#fff'
-						}
-					}
-				},
-				right: {
-					position: 'right',
-					attrs: {
-						circle: {
-							r: 4,
-							magnet: true,
-							stroke: '#31d0c6',
-							strokeWidth: 2,
-							fill: '#fff'
-						}
-					}
-				}
-			},
-			items: [
-				{ id: 'port-left', group: 'left' },
-				{ id: 'port-right', group: 'right' }
-			]
-		}
-	})
-	
-	// 注册 3D 开关 Vue 组件节点
-	register({
-		shape: 'switch-3d-vue',
-		width: 140,
-		height: 100,
-		component: Switch3D,
-		ports: {
-			groups: {
-				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
-			},
-			items: [
-				{ id: 'port-left', group: 'left' },
-				{ id: 'port-right', group: 'right' }
-			]
-		}
-	})
-	
-	// 注册 3D 电机 Vue 组件节点
-	register({
-		shape: 'motor-3d-vue',
-		width: 140,
-		height: 110,
-		component: Motor3D,
-		ports: {
-			groups: {
-				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
-			},
-			items: [
-				{ id: 'port-left', group: 'left' },
-				{ id: 'port-right', group: 'right' }
-			]
-		}
-	})
-	
-	// 注册 3D 阀门 Vue 组件节点
-	register({
-		shape: 'valve-3d-vue',
-		width: 100,
-		height: 140,
-		component: Valve3D,
-		ports: {
-			groups: {
-				top: { position: 'top', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				bottom: { position: 'bottom', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
-			},
-			items: [
-				{ id: 'port-top', group: 'top' },
-				{ id: 'port-bottom', group: 'bottom' }
-			]
-		}
-	})
-	
-	// 注册 3D 储罐 Vue 组件节点
-	register({
-		shape: 'tank-3d-vue',
-		width: 120,
-		height: 160,
-		component: Tank3D,
-		ports: {
-			groups: {
-				top: { position: 'top', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				bottom: { position: 'bottom', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
-			},
-			items: [
-				{ id: 'port-top', group: 'top' },
-				{ id: 'port-right', group: 'right' },
-				{ id: 'port-bottom', group: 'bottom' }
-			]
-		}
-	})
-	
-	// 注册 3D 水泵 Vue 组件节点
-	register({
-		shape: 'pump-3d-vue',
-		width: 160,
-		height: 120,
-		component: Pump3D,
-		ports: {
-			groups: {
-				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
-			},
-			items: [
-				{ id: 'port-left', group: 'left' },
-				{ id: 'port-right', group: 'right' }
-			]
-		}
-	})
-	
-	// 注册 3D 传送带 Vue 组件节点
-	register({
-		shape: 'conveyor-3d-vue',
-		width: 220,
-		height: 100,
-		component: Conveyor3D,
-		ports: {
-			groups: {
-				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
-			},
-			items: [
-				{ id: 'port-left', group: 'left' },
-				{ id: 'port-right', group: 'right' }
-			]
-		}
-	})
-	
-	// 注册 3D 报警灯 Vue 组件节点
-	register({
-		shape: 'alarm-light-3d-vue',
-		width: 100,
-		height: 120,
-		component: AlarmLight3D,
-		ports: {
-			groups: {
-				bottom: { position: 'bottom', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
-			},
-			items: [
-				{ id: 'port-bottom', group: 'bottom' }
-			]
-		}
-	})
-	
-	// 注册 3D 温度传感器 Vue 组件节点
-	register({
-		shape: 'temperature-sensor-3d-vue',
-		width: 100,
-		height: 140,
-		component: TemperatureSensor3D,
-		ports: {
-			groups: {
-				bottom: { position: 'bottom', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
-			},
-			items: [
-				{ id: 'port-bottom', group: 'bottom' }
-			]
-		}
-	})
-	
-	// 注册 3D 气缸 Vue 组件节点
-	register({
-		shape: 'cylinder-3d-vue',
-		width: 80,
-		height: 160,
-		component: Cylinder3D,
-		ports: {
-			groups: {
-				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
-			},
-			items: [
-				{ id: 'port-left', group: 'left' },
-				{ id: 'port-right', group: 'right' }
-			]
-		}
-	})
-	
-	// 注册 3D 管道 Vue 组件节点
-	register({
-		shape: 'pipe-3d-vue',
-		width: 220,
-		height: 60,
-		component: Pipe3D,
-		ports: {
-			groups: {
-				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
-			},
-			items: [
-				{ id: 'port-left', group: 'left' },
-				{ id: 'port-right', group: 'right' }
-			]
-		}
-	})
-	
-	// 注册 3D 过滤器 Vue 组件节点
-	register({
-		shape: 'filter-3d-vue',
-		width: 140,
-		height: 120,
-		component: Filter3D,
-		ports: {
-			groups: {
-				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
-			},
-			items: [
-				{ id: 'port-left', group: 'left' },
-				{ id: 'port-right', group: 'right' }
-			]
-		}
-	})
-	
-	// 注册 3D 换热器 Vue 组件节点
-	register({
-		shape: 'heat-exchanger-3d-vue',
-		width: 160,
-		height: 140,
-		component: HeatExchanger3D,
-		ports: {
-			groups: {
-				top: { position: 'top', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				bottom: { position: 'bottom', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
-			},
-			items: [
-				{ id: 'port-top', group: 'top' },
-				{ id: 'port-bottom', group: 'bottom' },
-				{ id: 'port-left', group: 'left' },
-				{ id: 'port-right', group: 'right' }
-			]
-		}
-	})
-	
-	// 注册 3D 三通 Vue 组件节点
-	register({
-		shape: 'tee-3d-vue',
-		width: 120,
-		height: 120,
-		component: Tee3D,
-		ports: {
-			groups: {
-				left: { position: 'left', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				right: { position: 'right', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				top: { position: 'top', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } },
-				bottom: { position: 'bottom', attrs: { circle: { r: 4, magnet: true, stroke: '#31d0c6', strokeWidth: 2, fill: '#fff' } } }
-			},
-			items: [
-				{ id: 'port-left', group: 'left' },
-				{ id: 'port-right', group: 'right' },
-				{ id: 'port-top', group: 'top' },
-				{ id: 'port-bottom', group: 'bottom' }
-			]
-		}
-	})
-	
-	console.log('[Vue Shape] 所有3D仿真组件节点注册成功')
 
 	// 初始化 X6 画布
 	const container = canvasAreaRef.value.containerRef
@@ -789,7 +460,7 @@ onMounted(() => {
 
 	// 尝试恢复之前保存的画布数据（仅编辑模式）
 	if (!props.previewMode) {
-		const savedCanvasData = loadFromSession(STORAGE_KEYS.SCADA_EDITOR_DATA)
+		const savedCanvasData = loadFromLocal(STORAGE_KEYS.SCADA_EDITOR_DATA)
 		if (savedCanvasData?.cells?.length > 0) {
 			try {
 				// 清理可能损坏的数据
@@ -825,8 +496,38 @@ onMounted(() => {
 			} catch (error) {
 				console.error('恢复画布数据失败，清空缓存:', error)
 				// 清空损坏的数据
-				sessionStorage.removeItem(STORAGE_KEYS.SCADA_EDITOR_DATA)
+				removeFromLocal(STORAGE_KEYS.SCADA_EDITOR_DATA)
 			}
+		}
+		
+		// 从 localStorage 恢复数据源配置（持久化存储）
+		try {
+			const savedDataSources = localStorage.getItem('scada-data-sources')
+			if (savedDataSources) {
+				const dataSourcesConfig = JSON.parse(savedDataSources)
+				if (Array.isArray(dataSourcesConfig) && dataSourcesConfig.length > 0) {
+					// 添加数据源到管理器
+					dataSourcesConfig.forEach((dsConfig: any) => {
+						const newDataSource: DataSource = {
+							id: dsConfig.id,
+							name: dsConfig.name,
+							type: dsConfig.type,
+							enabled: dsConfig.enabled,
+							config: dsConfig.config,
+							devices: [],
+							status: { connected: false }
+						}
+						dataSourceManager.addDataSource(newDataSource)
+					})
+					
+					// 延迟更新，等待连接建立
+					setTimeout(() => {
+						dataSources.value = dataSourceManager.getAllDataSources()
+					}, 1500)
+				}
+			}
+		} catch (error) {
+			console.error('恢复数据源失败:', error)
 		}
 	}
 
@@ -885,6 +586,52 @@ onMounted(() => {
 		// 节点尺寸改变时,Vue 的 watch 会自动处理更新
 	})
 	
+	// 监听右键菜单事件
+	graph.on('cell:contextmenu', ({ e, cell }: any) => {
+		e.preventDefault()
+		
+		// 保存目标元素
+		contextMenu.value.targetCell = cell
+		
+		// 设置菜单位置
+		contextMenu.value.position = { x: e.clientX, y: e.clientY }
+		
+		// 根据元素类型生成菜单项
+		if (cell.isNode()) {
+			contextMenu.value.items = [
+				{ key: 'delete', label: '删除', icon: '❌', hotkey: 'Delete' },
+				{ key: 'copy', label: '复制', icon: '📋', hotkey: 'Ctrl+C' },
+				{ key: 'divider1', divider: true },
+				{ key: 'to-front', label: '置于顶层', icon: '⬆️' },
+				{ key: 'to-back', label: '置于底层', icon: '⬇️' }
+			]
+		} else if (cell.isEdge()) {
+			contextMenu.value.items = [
+				{ key: 'delete', label: '删除', icon: '❌', hotkey: 'Delete' },
+				{ key: 'divider1', divider: true },
+				{ key: 'to-front', label: '置于顶层', icon: '⬆️' },
+				{ key: 'to-back', label: '置于底层', icon: '⬇️' }
+			]
+		}
+		
+		contextMenu.value.visible = true
+	})
+	
+	// 监听画布右键菜单，显示画布操作菜单
+	graph.on('blank:contextmenu', ({ e }: any) => {
+		e.preventDefault()
+		
+		contextMenu.value.targetCell = null
+		contextMenu.value.position = { x: e.clientX, y: e.clientY }
+		contextMenu.value.items = [
+			{ key: 'paste', label: '粘贴', icon: '📋', hotkey: 'Ctrl+V', disabled: true },
+			{ key: 'divider1', divider: true },
+			{ key: 'select-all', label: '全选', icon: '✅', hotkey: 'Ctrl+A' },
+			{ key: 'clear-all', label: '清空画布', icon: '🗑️' }
+		]
+		contextMenu.value.visible = true
+	})
+	
 	// 监听节点数据变化 - 检测动画配置变化并启动动画
 	graph.on('node:change:data', ({ node }: any) => {
 		const nodeData = node.getData()
@@ -933,23 +680,128 @@ onMounted(() => {
 	}
 	document.addEventListener('keydown', handleKeyDown)
 
+	// ========== 添加数据绑定同步逻辑 ==========
+	// 监听数据源数据更新，自动同步到绑定的组件
+	dataSourceManager.onData((dataSourceId: string, deviceData: any) => {
+		if (!graph) return
+			
+		// 遍历所有节点，查找绑定了该设备的节点
+		const nodes = graph.getNodes()
+		nodes.forEach(node => {
+			const nodeData = node.getData()
+			if (!nodeData || !nodeData.dataBinding) return
+				
+			// 检查是否绑定了该数据源和设备
+			if (nodeData.dataBinding.dataSourceId === dataSourceId && 
+			    nodeData.dataBinding.deviceId === deviceData.id) {
+					
+				// 检查是否有点位绑定
+				if (nodeData.bindings && Array.isArray(nodeData.bindings)) {
+					let updated = false
+						
+					// 遍历所有绑定
+					nodeData.bindings.forEach((binding: any) => {
+						if (!binding.devicePointId) return
+							
+						// 解析 devicePointId (deviceId:pointId 格式)
+						const parts = binding.devicePointId.split(':')
+						const pointId = parts.length === 2 ? parts[1] : binding.devicePointId
+							
+						// 查找对应的点位数据
+						const point = deviceData.points?.find((p: any) => p.id === pointId)
+						if (!point || point.value === undefined) return
+							
+						// 应用映射（如果有）
+						let mappedValue = point.value
+						if (binding.mapping) {
+							mappedValue = applyMapping(point.value, binding.mapping)
+						}
+							
+						// 更新节点属性
+						if (binding.targetProperty === 'value') {
+							nodeData.value = mappedValue
+							updated = true
+						} else {
+							nodeData[binding.targetProperty] = mappedValue
+							updated = true
+						}
+					})
+						
+					// 如果有更新，触发节点数据更新
+					if (updated) {
+						// 创建新对象以确保引用变化
+						const newData = JSON.parse(JSON.stringify(nodeData))
+						node.setData(newData, { overwrite: true })
+							
+						// 手动触发 X6 的 change:data 事件
+						node.trigger('change:data', { current: newData, previous: nodeData })
+					}
+				}
+			}
+		})
+	})
+	
+	// 映射函数：根据映射配置转换值
+	const applyMapping = (value: any, mapping: any) => {
+		if (!mapping || mapping.type === 'direct') {
+			return value
+		}
+		
+		switch (mapping.type) {
+			case 'boolean':
+				return value ? (mapping.trueValue ?? true) : (mapping.falseValue ?? false)
+				
+			case 'range':
+				if (mapping.rangeRules && Array.isArray(mapping.rangeRules)) {
+					for (const rule of mapping.rangeRules) {
+						const numValue = Number(value)
+						if (numValue >= rule.min && numValue <= rule.max) {
+							return rule.value
+						}
+					}
+				}
+				return value
+				
+			case 'enum':
+				if (mapping.enumMappings) {
+					return mapping.enumMappings[String(value)] ?? value
+				}
+				return value
+				
+			default:
+				return value
+		}
+	}
+
 	// 清理监听器
 	onUnmounted(() => {
 		document.removeEventListener('keydown', handleKeyDown)
 		window.removeEventListener('resize', handleResize)
+		window.removeEventListener('resize', handlePanelResize)
 	})
 })
 
 onUnmounted(() => {
+	// 断开所有数据源连接
+	dataSourceManager.disconnectAll()
+	
 	if (graph) {
 		// 清空所有动画
 		animationEngine.clearAll()
 		
 		// 在销毁前保存画布数据
 		const canvasData = {
-			cells: graph.toJSON().cells
+			cells: graph.toJSON().cells,
+			// 保存数据源配置
+			dataSources: dataSourceManager.getAllDataSources().map(ds => ({
+				id: ds.id,
+				name: ds.name,
+				type: ds.type,
+				enabled: ds.enabled,
+				config: ds.config
+			}))
 		}
-		saveToSession(STORAGE_KEYS.SCADA_EDITOR_DATA, canvasData)
+		saveToLocal(STORAGE_KEYS.SCADA_EDITOR_DATA, canvasData)
 		
 		graph.dispose()
 	}
@@ -1081,6 +933,9 @@ const handleAddNode = (type: string) => {
 	// 先取消所有选中，再选中新添加的节点
 	graph.cleanSelection()
 	graph.select(node)
+	
+	// 自动保存到 localStorage
+	saveToLocal(STORAGE_KEYS.SCADA_EDITOR_DATA, graph.toJSON())
 }
 
 // 更新节点属性
@@ -1130,6 +985,11 @@ const handleUpdateNode = (data: any) => {
 		// 使用 setData 方法，这样会触发 change:data 事件
 		selectedNode.value.setData(cleanedData)
 	}
+	
+	// 自动保存到 localStorage
+	if (graph) {
+		saveToLocal(STORAGE_KEYS.SCADA_EDITOR_DATA, graph.toJSON())
+	}
 }
 
 // 删除节点
@@ -1140,6 +1000,9 @@ const handleDeleteNode = () => {
 	animationEngine.stopAnimation(nodeId)
 	graph.removeNode(nodeId)
 	selectedNode.value = null
+	
+	// 自动保存到 localStorage
+	saveToLocal(STORAGE_KEYS.SCADA_EDITOR_DATA, graph.toJSON())
 }
 
 // 更新连线属性
@@ -1197,6 +1060,117 @@ const handleDeleteEdge = () => {
 	if (!selectedEdge.value || !graph) return
 	graph.removeEdge(selectedEdge.value.id)
 	selectedEdge.value = null
+}
+
+// 处理右键菜单点击
+const handleContextMenuClick = (key: string) => {
+	if (!graph) return
+	
+	const targetCell = contextMenu.value.targetCell
+	
+	switch (key) {
+		case 'delete':
+			if (targetCell) {
+				if (targetCell.isNode()) {
+					// 删除节点
+					animationEngine.stopAnimation(targetCell.id)
+					graph.removeNode(targetCell.id)
+					if (selectedNode.value?.id === targetCell.id) {
+						selectedNode.value = null
+					}
+				} else if (targetCell.isEdge()) {
+					// 删除连线
+					graph.removeEdge(targetCell.id)
+					if (selectedEdge.value?.id === targetCell.id) {
+						selectedEdge.value = null
+					}
+				}
+				// 自动保存到 localStorage（永久保存）
+				// 保存画布数据和数据源配置
+				const canvasData = {
+					cells: graph.toJSON().cells,
+					dataSources: dataSourceManager.getAllDataSources().map(ds => ({
+						id: ds.id,
+						name: ds.name,
+						type: ds.type,
+						enabled: ds.enabled,
+						config: ds.config
+					}))
+				}
+				saveToLocal(STORAGE_KEYS.SCADA_EDITOR_DATA, canvasData)
+			}
+			break
+			
+		case 'copy':
+			if (targetCell?.isNode()) {
+				// 复制节点（简单实现：克隆并偏移位置）
+				const clonedNode = targetCell.clone()
+				clonedNode.translate(20, 20)
+				graph.addNode(clonedNode)
+				graph.cleanSelection()
+				graph.select(clonedNode)
+				// 自动保存到 localStorage（永久保存）
+				// 保存画布数据和数据源配置
+				const canvasData = {
+					cells: graph.toJSON().cells,
+					dataSources: dataSourceManager.getAllDataSources().map(ds => ({
+						id: ds.id,
+						name: ds.name,
+						type: ds.type,
+						enabled: ds.enabled,
+						config: ds.config
+					}))
+				}
+				saveToLocal(STORAGE_KEYS.SCADA_EDITOR_DATA, canvasData)
+			}
+			break
+			
+		case 'to-front':
+			if (targetCell) {
+				targetCell.toFront()
+				// 自动保存到 localStorage（永久保存）
+				// 保存画布数据和数据源配置
+				const canvasData = {
+					cells: graph.toJSON().cells,
+					dataSources: dataSourceManager.getAllDataSources().map(ds => ({
+						id: ds.id,
+						name: ds.name,
+						type: ds.type,
+						enabled: ds.enabled,
+						config: ds.config
+					}))
+				}
+				saveToLocal(STORAGE_KEYS.SCADA_EDITOR_DATA, canvasData)
+			}
+			break
+			
+		case 'to-back':
+			if (targetCell) {
+				targetCell.toBack()
+				// 自动保存到 localStorage（永久保存）
+				// 保存画布数据和数据源配置
+				const canvasData = {
+					cells: graph.toJSON().cells,
+					dataSources: dataSourceManager.getAllDataSources().map(ds => ({
+						id: ds.id,
+						name: ds.name,
+						type: ds.type,
+						enabled: ds.enabled,
+						config: ds.config
+					}))
+				}
+				saveToLocal(STORAGE_KEYS.SCADA_EDITOR_DATA, canvasData)
+			}
+			break
+			
+		case 'select-all':
+			graph.select(graph.getNodes())
+			break
+			
+		case 'clear-all':
+			clearAll()
+			break
+	}
 }
 
 // 应用连线动画
@@ -1265,8 +1239,9 @@ const clearAll = () => {
 		graph.clearCells()
 		// 清除选中节点
 		selectedNode.value = null
-		// 清除 sessionStorage 中的缓存数据
-		removeFromSession(STORAGE_KEYS.SCADA_EDITOR_DATA)
+		// 清除 localStorage 中的缓存数据
+		removeFromLocal(STORAGE_KEYS.SCADA_EDITOR_DATA)
+		showMessage('画布已清空', 'success')
 	}
 }
 
@@ -1455,7 +1430,16 @@ const handleSave = async () => {
 				magnetism: canvasConfigManager.getConfig().magnetism,
 				zoom: canvasConfigManager.getConfig().zoom
 			},
-			cells: graph.toJSON().cells
+			cells: graph.toJSON().cells,
+			// 添加数据源配置
+			dataSources: dataSourceManager.getAllDataSources().map(ds => ({
+				id: ds.id,
+				name: ds.name,
+				type: ds.type,
+				enabled: ds.enabled,
+				config: ds.config
+				// 不保存 devices 和 status，这些是运行时数据
+			}))
 		}
 		
 		// 下载为 JSON 文件
@@ -1526,6 +1510,33 @@ const handleFileSelect = (event: Event) => {
 				// 如果有配置信息，应用配置
 				if (importData.config) {
 					canvasConfigManager.updateConfig(importData.config)
+				}
+				
+				// 导入数据源配置
+				if (importData.dataSources && Array.isArray(importData.dataSources)) {
+					// 清空现有数据源
+					dataSourceManager.disconnectAll()
+					dataSourceManager.getAllDataSources().forEach(ds => {
+						dataSourceManager.removeDataSource(ds.id)
+					})
+					
+					// 添加导入的数据源
+					importData.dataSources.forEach((dsConfig: any) => {
+						const newDataSource: DataSource = {
+							id: dsConfig.id,
+							name: dsConfig.name,
+							type: dsConfig.type,
+							enabled: dsConfig.enabled,
+							config: dsConfig.config,
+							devices: [],
+							status: { connected: false }
+						}
+						dataSourceManager.addDataSource(newDataSource)
+					})
+					
+					// 更新数据源列表
+					dataSources.value = dataSourceManager.getAllDataSources()
+					console.log(`[ScadaCanvas] 已导入 ${importData.dataSources.length} 个数据源`)
 				}
 				
 				// 导入流程数据
@@ -1602,9 +1613,9 @@ const handlePreview = () => {
 		}
 	}
 	
-	// 将数据存储到 sessionStorage
-	saveToSession(STORAGE_KEYS.SCADA_PREVIEW_DATA, canvasData)
-	console.log('✅ [ScadaCanvas] 数据已保存到 sessionStorage')
+	// 将数据存储到 localStorage
+	saveToLocal(STORAGE_KEYS.SCADA_PREVIEW_DATA, canvasData)
+	console.log('✅ [ScadaCanvas] 数据已保存到 localStorage')
 	
 	// 触发预览事件，由父组件处理路由跳转
 	console.log('📤 [ScadaCanvas] 即将触发 preview 事件')
@@ -1615,6 +1626,79 @@ const handlePreview = () => {
 const handleWorkflow = () => {
 	// 打开流程编排弹窗
 	showWorkflowDialog.value = true
+}
+
+// 数据源管理
+const handleDataSource = () => {
+	// 打开数据源管理对话框
+	showDataSourceDialog.value = true
+	// 同步数据源列表
+	dataSources.value = dataSourceManager.getAllDataSources()
+	
+	// 定时刷新状态
+	const statusInterval = setInterval(() => {
+		if (!showDataSourceDialog.value) {
+			clearInterval(statusInterval)
+			return
+		}
+		dataSources.value = dataSourceManager.getAllDataSources()
+	}, 1000)
+}
+
+// 保存数据源配置到 localStorage
+const saveDataSourcesToLocalStorage = () => {
+	try {
+		const dataSourcesConfig = dataSourceManager.getAllDataSources().map(ds => ({
+			id: ds.id,
+			name: ds.name,
+			type: ds.type,
+			enabled: ds.enabled,
+			config: ds.config
+		}))
+		localStorage.setItem('scada-data-sources', JSON.stringify(dataSourcesConfig))
+		console.log('[ScadaCanvas] 数据源配置已保存到 localStorage')
+	} catch (error) {
+		console.error('保存数据源失败:', error)
+	}
+}
+
+const handleAddDataSource = (config: Omit<DataSource, 'id' | 'devices' | 'status'>) => {
+	const newDataSource: DataSource = {
+		id: 'ds_' + Date.now(),
+		...config,
+		devices: [],
+		status: { connected: false }
+	}
+	
+	console.log('[ScadaCanvas] 添加数据源:', newDataSource)
+	dataSourceManager.addDataSource(newDataSource)
+	
+	// 延迟一下刷新，等待连接建立
+	setTimeout(() => {
+		dataSources.value = dataSourceManager.getAllDataSources()
+		console.log('[ScadaCanvas] 数据源列表已更新:', dataSources.value)
+		// 保存到 localStorage
+		saveDataSourcesToLocalStorage()
+	}, 1000)
+	
+	showMessage(`数据源 "${newDataSource.name}" 创建成功`, 'success')
+}
+
+const handleSaveDataSource = (dataSource: DataSource) => {
+	dataSourceManager.updateDataSource(dataSource.id, dataSource)
+	dataSources.value = dataSourceManager.getAllDataSources()
+	// 保存到 localStorage
+	saveDataSourcesToLocalStorage()
+	showMessage(`数据源 "${dataSource.name}" 更新成功`, 'success')
+}
+
+const handleDeleteDataSource = (id: string) => {
+	const ds = dataSourceManager.getDataSource(id)
+	dataSourceManager.removeDataSource(id)
+	dataSources.value = dataSourceManager.getAllDataSources()
+	// 保存到 localStorage
+	saveDataSourcesToLocalStorage()
+	showMessage(`数据源 "${ds?.name}" 已删除`, 'success')
 }
 
 const handleExport = () => {
@@ -1695,7 +1779,7 @@ const handleExport = () => {
 // 暴露核心方法给外部使用
 defineExpose({
 	// === 文件操作 ===
-	/** 保存画布数据到 sessionStorage */
+	/** 保存画布数据到 localStorage */
 	save: handleSave,
 	/** 触发文件选择，导入 JSON 数据 */
 	importFile: handleImport,
@@ -1916,8 +2000,8 @@ defineExpose({
 <style scoped>
 .scada-layout {
 	width: 100%;
-	height: 100%;
-	min-height: 100vh;
+	height: 100vh;
+	max-height: 100vh;
 	display: flex;
 	flex-direction: column;
 	background: #1a1a2e;

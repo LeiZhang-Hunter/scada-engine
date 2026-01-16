@@ -1,5 +1,8 @@
 <template>
-	<div class="property-panel">
+	<div class="property-panel" :class="{ collapsed: isCollapsed }">
+		<button class="collapse-btn" @click="toggleCollapse" :title="isCollapsed ? '展开属性面板' : '折叠属性面板'">
+			<span class="collapse-icon">▶</span>
+		</button>
 		<!-- 画布配置 -->
 		<CanvasConfigPanel v-if="!selectedNode && !selectedEdge" />
 
@@ -26,16 +29,10 @@
 					基础
 				</button>
 				<button
-					:class="['tab-btn', { active: activeTab === 'data' }]"
-					@click="activeTab = 'data'"
-				>
-					数据
-				</button>
-				<button
 					:class="['tab-btn', { active: activeTab === 'binding' }]"
 					@click="activeTab = 'binding'"
 				>
-					绑定
+					数据绑定
 				</button>
 				<button
 					:class="['tab-btn', { active: activeTab === 'event' }]"
@@ -65,13 +62,48 @@
 					@update-dynamic-prop="updateDynamicProp"
 				/>
 
-				<!-- 数据 Tab -->
-				<DataPropertiesTab
-					v-show="activeTab === 'data'"
-					:selected-node="selectedNode"
-					@update-data-source="updateDataSource"
-				/>
+				<!-- 数据绑定 Tab -->
+				<div v-show="activeTab === 'binding'" class="tab-pane">
+					<!-- 数据源选择区域 -->
+					<DataPropertiesTab
+						:selected-node="selectedNode"
+						@update-data-source="updateDataSource"
+					/>
+					
+					<!-- 分割线 -->
+					<div class="divider"></div>
+					
+					<!-- 点位绑定区域 -->
+					<div class="property-section">
+						<div class="section-header">
+							<h4>点位映射</h4>
+							<button class="btn-add" @click="addBinding">+ 添加映射</button>
+						</div>
+						
+						<div v-if="bindingList.length === 0" class="empty-hint">
+							<span>暂无点位映射，请先选择设备后点击上方按钮添加</span>
+						</div>
 
+						<div class="event-list">
+							<BindingCard
+								v-for="(binding, index) in bindingList"
+								:key="index"
+								:binding="binding"
+								:index="index"
+								:is-collapsed="isBindingCollapsed(index)"
+								:node-properties="getNodeProperties()"
+								:event-list="eventList"
+								:device-data="currentDeviceData"
+								:node-device-id="currentDeviceId"
+								:node-device-name="currentDeviceName"
+								@toggle-collapse="toggleBindingCollapse(index)"
+								@remove="removeBinding(index)"
+								@update-field="(field, e) => updateBindingField(index, field, e)"
+							/>
+						</div>
+					</div>
+				</div>
+				
 				<!-- 事件 Tab -->
 				<div v-show="activeTab === 'event'" class="tab-pane">
 					<div class="property-section">
@@ -100,36 +132,6 @@
 								@open-attribute-config="openAttributeConfig(index)"
 								@open-custom-code="openCustomCodeConfig(index)"
 								@open-workflow-selector="openWorkflowSelector(index)"
-							/>
-						</div>
-					</div>
-				</div>
-
-				<!-- 绑定 Tab -->
-				<div v-show="activeTab === 'binding'" class="tab-pane">
-					<div class="property-section">
-						<div class="section-header">
-							<h4>数据绑定</h4>
-							<button class="btn-add" @click="addBinding">+ 添加绑定</button>
-						</div>
-						
-						<div v-if="bindingList.length === 0" class="empty-hint">
-							<span>暂无绑定，点击上方按钮添加</span>
-						</div>
-
-						<div class="event-list">
-							<BindingCard
-								v-for="(binding, index) in bindingList"
-								:key="index"
-								:binding="binding"
-								:index="index"
-								:is-collapsed="isBindingCollapsed(index)"
-								:node-properties="getNodeProperties()"
-								:event-list="eventList"
-								:device-data="props.deviceData"
-								@toggle-collapse="toggleBindingCollapse(index)"
-								@remove="removeBinding(index)"
-								@update-field="(field, e) => updateBindingField(index, field, e)"
 							/>
 						</div>
 					</div>
@@ -181,21 +183,30 @@ import AttributeConfigDialog from './AttributeConfigDialog.vue'
 import CustomCodeDialog from './CustomCodeDialog.vue'
 import WorkflowSelectorDialog from './WorkflowSelectorDialog.vue'
 import { generateEventId } from '../utils'
+import { dataSourceManager } from '../services/dataSourceManager'
 
 interface Props {
 	selectedNode: Node | null
 	selectedEdge: Edge | null
 	deviceData?: any // 设备数据
+	isCollapsed?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+	isCollapsed: false
+})
 
 const emit = defineEmits<{
 	updateNode: [data: any]
 	deleteNode: []
 	updateEdge: [data: any]
 	deleteEdge: []
+	'update:collapsed': [value: boolean]
 }>()
+
+const toggleCollapse = () => {
+	emit('update:collapsed', !props.isCollapsed)
+}
 
 // 当前激活的 tab
 const activeTab = ref<'basic' | 'data' | 'binding' | 'event'>('basic')
@@ -244,6 +255,45 @@ const collapsedEvents = ref<Set<number>>(new Set())
 // 绑定列表 - 使用标准类型
 const bindingList = ref<StandardBindingConfig[]>([])
 const collapsedBindings = ref<Set<number>>(new Set())
+
+// 获取当前节点绑定的设备数据
+const currentDeviceData = computed(() => {
+	if (!props.selectedNode) return null
+	
+	const nodeData = props.selectedNode.getData()
+	const dataBinding = nodeData?.dataBinding
+	
+	if (!dataBinding?.dataSourceId || !dataBinding?.deviceId) return null
+	
+	// 从数据源管理器获取设备数据
+	const dataSource = dataSourceManager.getDataSource(dataBinding.dataSourceId)
+	if (!dataSource) return null
+	
+	const device = dataSource.devices.find(d => d.id === dataBinding.deviceId)
+	if (!device) return null
+	
+	// 返回符合 BindingCard 期望的格式
+	return {
+		devices: [{
+			id: device.id,
+			name: device.name,
+			points: device.points || []
+		}]
+	}
+})
+
+// 获取当前节点绑定的设备ID
+const currentDeviceId = computed(() => {
+	if (!props.selectedNode) return undefined
+	const nodeData = props.selectedNode.getData()
+	return nodeData?.dataBinding?.deviceId
+})
+
+// 获取当前设备名称
+const currentDeviceName = computed(() => {
+	if (!currentDeviceData.value?.devices?.[0]) return undefined
+	return currentDeviceData.value.devices[0].name
+})
 
 // 监听选中节点变化，加载事件配置
 watch(() => props.selectedNode, (node) => {
@@ -451,12 +501,12 @@ const updateDynamicProp = (path: string, value: any) => {
 }
 
 // 更新数据源配置
-const updateDataSource = (dataSource: any) => {
+const updateDataSource = (config: { dataSourceId: string; deviceId: string }) => {
 	if (!props.selectedNode) return
 	
 	const data = { 
 		...props.selectedNode.data, 
-		dataSource 
+		dataBinding: config  // 使用 dataBinding 字段
 	}
 	emit('updateNode', { data })
 }
@@ -730,6 +780,14 @@ const getNodeProperties = () => {
 	}
 	
 	return properties
+}
+
+// 根据 deviceId 获取设备名称
+const getDeviceName = (deviceId?: string) => {
+	if (!deviceId || !props.deviceData?.devices) return undefined
+	
+	const device = props.deviceData.devices.find((d: any) => d.id === deviceId)
+	return device?.name
 }
 
 // Edge 相关方法

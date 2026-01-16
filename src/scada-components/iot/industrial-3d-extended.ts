@@ -1,4 +1,8 @@
 import type { ComponentConfig } from '../types'
+import Conveyor3D from './Conveyor3D.vue'
+import AlarmLight3D from './AlarmLight3D.vue'
+import TemperatureSensor3D from './TemperatureSensor3D.vue'
+import Cylinder3D from './Cylinder3D.vue'
 
 /**
  * 3D传送带组件配置
@@ -13,6 +17,7 @@ export const Conveyor3DComponent: ComponentConfig = {
     version: '1.0.0'
   },
   shape: 'conveyor-3d-vue',
+  component: Conveyor3D,
   width: 220,
   height: 100,
   label: '',
@@ -129,6 +134,7 @@ export const AlarmLight3DComponent: ComponentConfig = {
     version: '1.0.0'
   },
   shape: 'alarm-light-3d-vue',
+  component: AlarmLight3D,
   width: 100,
   height: 120,
   label: '',
@@ -231,6 +237,7 @@ export const TemperatureSensor3DComponent: ComponentConfig = {
     version: '1.0.0'
   },
   shape: 'temperature-sensor-3d-vue',
+  component: TemperatureSensor3D,
   width: 100,
   height: 140,
   label: '',
@@ -342,6 +349,7 @@ export const Cylinder3DComponent: ComponentConfig = {
     version: '1.0.0'
   },
   shape: 'cylinder-3d-vue',
+  component: Cylinder3D,
   width: 80,
   height: 160,
   label: '',

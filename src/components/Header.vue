@@ -64,6 +64,10 @@
 		<!-- 文件操作组 - 靠右 -->
 		<div class="header-right">
 			<div class="tool-group">
+				<button class="header-btn" @click="emit('dataSource')" title="数据源管理">
+					<span class="icon">📡</span>
+					<span>数据源</span>
+				</button>
 				<button class="header-btn" @click="emit('workflow')" title="流程编排">
 					<span class="icon">⚡</span>
 					<span>流程编排</span>
@@ -116,6 +120,7 @@ const emit = defineEmits<{
 	workflow: []
 	preview: []
 	export: []
+	dataSource: []  // 数据源管理
 	zoomIn: []
 	zoomOut: []
 	clearAll: []

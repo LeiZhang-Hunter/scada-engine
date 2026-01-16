@@ -163,7 +163,7 @@ const handleLoadData = (jsonData: any) => {
 
 | 方法名 | 参数 | 返回值 | 说明 |
 |--------|------|--------|------|
-| `save()` | - | `void` | 保存画布数据到 sessionStorage |
+| `save()` | - | `void` | 保存画布数据到 localStorage |
 | `import()` | - | `void` | 触发文件选择，导入 JSON 数据 |
 | `export()` | - | `void` | 导出画布数据为 JSON 文件 |
 | `preview()` | - | `void` | 跳转到预览页面 |

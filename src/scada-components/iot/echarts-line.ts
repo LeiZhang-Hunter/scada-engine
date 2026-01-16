@@ -1,5 +1,6 @@
 import type { ComponentConfig } from '../types'
 import { linePresets } from './echarts-line-presets'
+import EChartsLine from './EChartsLine.vue'
 
 /**
  * ECharts 折线图组件配置
@@ -14,6 +15,7 @@ export const EChartsLineComponent: ComponentConfig = {
     version: '1.0.0'
   },
   shape: 'echarts-line-vue',
+  component: EChartsLine,
   width: 400,
   height: 300,
   label: '',

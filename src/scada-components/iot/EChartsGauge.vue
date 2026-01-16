@@ -5,7 +5,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import * as echarts from 'echarts'
-import type { EChartsOption } from 'echarts'
 import { getPresetById } from './echarts-gauge-presets'
 
 // Vue Shape 会传递整个 node 对象作为 prop
@@ -49,10 +48,6 @@ const updateChart = () => {
   const presetId = data.presetId || 'basic'
   const preset = getPresetById(presetId)
   
-  console.log('[EChartsGauge] 预设ID:', presetId)
-  console.log('[EChartsGauge] 预设配置:', preset)
-  console.log('[EChartsGauge] 节点数据:', data)
-  
   // 基础配置
   const baseOption: any = {
     tooltip: {
@@ -75,9 +70,6 @@ const updateChart = () => {
   // 应用预设配置
   if (preset && preset.config) {
     Object.assign(baseOption.series[0], preset.config)
-    console.log('[EChartsGauge] 最终配置:', baseOption)
-  } else {
-    console.warn('[EChartsGauge] 预设未找到或配置为空')
   }
   
   chartInstance.setOption(baseOption, true)
@@ -85,14 +77,11 @@ const updateChart = () => {
 
 // 监听数据变化 - 监听整个 node.data
 watch(() => props.node?.data, (newData, oldData) => {
-  console.log('[EChartsGauge] data 变化:', newData)
-  console.log('[EChartsGauge] 旧数据:', oldData)
   updateChart()
 }, { deep: true })
 
 // 单独监听 presetId 变化
 watch(() => props.node?.data?.presetId, (newPreset, oldPreset) => {
-  console.log('[EChartsGauge] presetId 变化:', oldPreset, '->', newPreset)
   if (newPreset !== oldPreset) {
     updateChart()
   }
@@ -117,7 +106,6 @@ onMounted(() => {
     // 监听 X6 节点的 data 变化事件
     if (props.node && typeof props.node.on === 'function') {
       props.node.on('change:data', ({ current }: any) => {
-        console.log('[EChartsGauge] X6 data 变化事件:', current)
         updateChart()
       })
     }

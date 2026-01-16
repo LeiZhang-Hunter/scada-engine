@@ -1,4 +1,8 @@
 import type { ComponentConfig } from '../types'
+import Motor3D from './Motor3D.vue'
+import Valve3D from './Valve3D.vue'
+import Tank3D from './Tank3D.vue'
+import Pump3D from './Pump3D.vue'
 
 /**
  * 3D电机组件配置
@@ -13,6 +17,7 @@ export const Motor3DComponent: ComponentConfig = {
     version: '1.0.0'
   },
   shape: 'motor-3d-vue',
+  component: Motor3D,
   width: 140,
   height: 110,
   label: '',
@@ -120,6 +125,7 @@ export const Valve3DComponent: ComponentConfig = {
     version: '1.0.0'
   },
   shape: 'valve-3d-vue',
+  component: Valve3D,
   width: 100,
   height: 140,
   label: '',
@@ -219,6 +225,7 @@ export const Tank3DComponent: ComponentConfig = {
     version: '1.0.0'
   },
   shape: 'tank-3d-vue',
+  component: Tank3D,
   width: 120,
   height: 160,
   label: '',
@@ -353,6 +360,7 @@ export const Pump3DComponent: ComponentConfig = {
     version: '1.0.0'
   },
   shape: 'pump-3d-vue',
+  component: Pump3D,
   width: 160,
   height: 120,
   label: '',

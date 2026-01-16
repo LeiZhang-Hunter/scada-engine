@@ -1,4 +1,5 @@
 import type { ComponentConfig } from '../types'
+import Light3D from './Light3D.vue'
 
 /**
  * 灯泡组件配置（使用3D仿真效果）
@@ -13,6 +14,7 @@ export const LightComponent: ComponentConfig = {
     version: '2.0.0'
   },
   shape: 'light-3d-vue',
+  component: Light3D,
   width: 100,
   height: 120,
   label: '',

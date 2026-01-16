@@ -64,7 +64,6 @@ class ComponentRegistryManager {
     }
 
     this.registry[id] = config
-    console.log(`✓ 组件注册成功: ${config.metadata.name} (${id})`)
   }
 
   /**
@@ -117,7 +116,6 @@ class ComponentRegistryManager {
   unregister(id: string): boolean {
     if (this.registry[id]) {
       delete this.registry[id]
-      console.log(`✓ 组件注销成功: ${id}`)
       return true
     }
     console.warn(`组件 ${id} 不存在`)
@@ -136,7 +134,6 @@ class ComponentRegistryManager {
    */
   clear(): void {
     this.registry = {}
-    console.log('✓ 组件注册表已清空')
   }
 }
 

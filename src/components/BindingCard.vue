@@ -38,7 +38,9 @@
 			<!-- 设备点位选择弹窗 -->
 			<DevicePointSelector
 				v-model:visible="showSelector"
-				v-model="bindingValue"
+				v-model="pointIdValue"
+				:device-id="props.nodeDeviceId || ''"
+				:device-name="props.nodeDeviceName"
 				:device-data="deviceDataComputed"
 				@confirm="handlePointSelect"
 			/>
@@ -81,7 +83,6 @@
 import { ref, watch, computed } from 'vue'
 import DevicePointSelector from './DevicePointSelector.vue'
 import MappingConfigurator from './MappingConfigurator.vue'
-import { getDeviceById as getMockDeviceById, getPointById as getMockPointById } from '../mock/deviceData'
 import type { Device, DevicePoint } from '../types/device'
 import { MappingType, ValueType, type BindingConfig, type MappingConfig } from '../types/binding'
 
@@ -97,6 +98,8 @@ const props = defineProps<{
 	isCollapsed: boolean
 	nodeProperties: NodeProperty[]
 	deviceData?: any
+	nodeDeviceId?: string    // 当前节点的设备ID
+	nodeDeviceName?: string  // 当前节点的设备名称
 }>()
 
 const emit = defineEmits<{
@@ -105,14 +108,24 @@ const emit = defineEmits<{
 	'update-field': [field: string, event: Event]
 }>()
 
-// 绑定值
-const bindingValue = ref(props.binding.devicePointId || '')
+// 绑定值（只存储 pointId）
+const pointIdValue = ref('')
 const showSelector = ref(false)
 const showMappingConfig = ref(false)
 const localMapping = ref<MappingConfig>(props.binding.mapping || { 
 	type: MappingType.DIRECT,
 	valueType: ValueType.NUMBER
 })
+
+// 初始化时解析 devicePointId
+if (props.binding.devicePointId) {
+	const parts = props.binding.devicePointId.split(':')
+	if (parts.length === 2) {
+		pointIdValue.value = parts[1]  // 只取 pointId
+	} else {
+		pointIdValue.value = props.binding.devicePointId  // 如果已经是 pointId
+	}
+}
 
 // 使用传递的设备数据
 const deviceDataComputed = computed(() => {
@@ -121,7 +134,16 @@ const deviceDataComputed = computed(() => {
 
 // 监听外部变化
 watch(() => props.binding.devicePointId, (newVal) => {
-	bindingValue.value = newVal || ''
+	if (newVal) {
+		const parts = newVal.split(':')
+		if (parts.length === 2) {
+			pointIdValue.value = parts[1]
+		} else {
+			pointIdValue.value = newVal
+		}
+	} else {
+		pointIdValue.value = ''
+	}
 })
 
 watch(() => props.binding.mapping, (newVal) => {
@@ -132,12 +154,12 @@ watch(() => props.binding.mapping, (newVal) => {
 
 // 解析选中的点位信息（用于显示）
 const selectedPointInfo = computed(() => {
-	if (!bindingValue.value) return null
+	if (!pointIdValue.value || !props.nodeDeviceId) return null
 	
-	const [deviceId, pointId] = bindingValue.value.split(':')
-	if (!deviceId || !pointId) return null
+	const deviceId = props.nodeDeviceId
+	const pointId = pointIdValue.value
 	
-	// 优先使用传递的设备数据，如果不存在则使用mock数据
+	// 使用传递的设备数据
 	let device = null
 	let point = null
 	
@@ -145,14 +167,6 @@ const selectedPointInfo = computed(() => {
 		device = props.deviceData.devices.find((d: any) => d.id === deviceId)
 		if (device) {
 			point = device.points?.find((p: any) => p.id === pointId) || null
-		}
-	}
-	
-	// 如果在传递的设备数据中没找到，尝试使用mock数据
-	if (!device) {
-		device = getMockDeviceById(deviceId)
-		if (device) {
-			point = getMockPointById(deviceId, pointId)
 		}
 	}
 	
@@ -167,18 +181,20 @@ const selectedPointInfo = computed(() => {
 })
 
 // 处理点位选择
-const handlePointSelect = (deviceId: string, pointId: string, device: Device, point: DevicePoint) => {
-	// 更新设备点位
+const handlePointSelect = (pointId: string, point: DevicePoint) => {
+	// 更新设备点位（保存为 deviceId:pointId 格式）
+	const devicePointId = `${props.nodeDeviceId}:${pointId}`
 	const event = new Event('change')
 	Object.defineProperty(event, 'target', {
-		value: { value: `${deviceId}:${pointId}` },
+		value: { value: devicePointId },
 		writable: false
 	})
 	emit('update-field', 'devicePointId', event)
 	
 	console.log('选择了点位:', {
-		device: device.name,
-		point: point.name,
+		deviceId: props.nodeDeviceId,
+		pointId: pointId,
+		pointName: point.name,
 		dataType: point.dataType,
 		accessMode: point.accessMode
 	})

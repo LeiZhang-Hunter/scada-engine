@@ -1,5 +1,8 @@
 <template>
-	<aside class="component-library">
+	<aside class="component-library" :class="{ collapsed: isCollapsed }">
+		<button class="collapse-btn" @click="toggleCollapse" :title="isCollapsed ? '展开组件库' : '折叠组件库'">
+			<span class="collapse-icon">◀</span>
+		</button>
 		<div class="library-header">
 			<h3>组件库</h3>
 		</div>
@@ -53,9 +56,22 @@ import { computed, reactive } from 'vue'
 import { componentRegistry } from '../scada-components'
 import type { ComponentConfig } from '../scada-components'
 
+interface Props {
+	isCollapsed?: boolean
+}
+
+const props = withDefaults(defineProps<Props>(), {
+	isCollapsed: false
+})
+
 const emit = defineEmits<{
 	addComponent: [type: string]
+	'update:collapsed': [value: boolean]
 }>()
+
+const toggleCollapse = () => {
+	emit('update:collapsed', !props.isCollapsed)
+}
 
 // 折叠状态
 const collapsedSections = reactive({
@@ -91,6 +107,56 @@ const handleAddComponent = (component: ComponentConfig) => {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
+	position: relative;
+	transition: width 0.3s ease, margin-left 0.3s ease;
+}
+
+.component-library.collapsed {
+	width: 0;
+	margin-left: 0;
+	border-right: none;
+	overflow: visible; /* 改为 visible 让按钮可见 */
+}
+
+.collapse-btn {
+	position: absolute;
+	top: 50%;
+	right: -12px;
+	transform: translateY(-50%);
+	width: 24px;
+	height: 48px;
+	background: #1e293b;
+	border: 1px solid #0f3460;
+	border-left: none;
+	border-radius: 0 6px 6px 0;
+	cursor: pointer;
+	z-index: 10;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.2s;
+	opacity: 1;
+	visibility: visible;
+}
+
+/* 折叠状态下按钮位置调整 */
+.component-library.collapsed .collapse-btn {
+	right: -24px; /* 折叠后按钮向右偏移 */
+}
+
+.collapse-btn:hover {
+	background: #334155;
+	right: -14px;
+}
+
+.collapse-icon {
+	font-size: 12px;
+	color: #94a3b8;
+	transition: transform 0.3s;
+}
+
+.component-library.collapsed .collapse-icon {
+	transform: rotate(180deg);
 }
 
 .library-header {

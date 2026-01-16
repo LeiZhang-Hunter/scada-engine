@@ -12,7 +12,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 
 import { Graph } from '@antv/x6'
 import { registerNodeEvents } from '../../utils/eventUtils'
-import { loadFromSession, removeFromSession, STORAGE_KEYS } from '../../utils/storageUtils'
+import { loadFromLocal, removeFromLocal, STORAGE_KEYS } from '../../utils/storageUtils'
 import { animationEngine } from '../../utils/animationEngine'
 
 // 导入所有组件以确保它们被注册
@@ -22,9 +22,9 @@ import '../../scada-components/iot'
 const canvasContainer = ref<HTMLElement | null>(null)
 let graph: Graph | null = null
 
-// 从路由参数或 sessionStorage 获取画布数据
+// 从 localStorage 获取画布数据
 const loadCanvasData = () => {
-	return loadFromSession(STORAGE_KEYS.SCADA_PREVIEW_DATA)
+	return loadFromLocal(STORAGE_KEYS.SCADA_PREVIEW_DATA)
 }
 
 onMounted(() => {
@@ -97,7 +97,7 @@ onUnmounted(() => {
 		graph.dispose()
 	}
 	// 清除预览数据
-	removeFromSession(STORAGE_KEYS.SCADA_PREVIEW_DATA)
+	removeFromLocal(STORAGE_KEYS.SCADA_PREVIEW_DATA)
 })
 
 

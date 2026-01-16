@@ -23,8 +23,8 @@
 	
 	/* 尺寸 */
 	width: 100% !important;
-	height: 100% !important;
-	min-height: 100vh !important;
+	height: 100vh !important;
+	max-height: 100vh !important;
 	
 	/* 外观 */
 	background: #1a1a2e !important;
@@ -95,10 +95,10 @@
 }
 
 /* 6. 文本元素 - 仅强制覆盖画布区域内的文本样式，保留属性面板样式 */
-.scada-layout[data-scada-theme="dark"] .canvas-area label,
-.scada-layout[data-scada-theme="dark"] .canvas-area span,
-.scada-layout[data-scada-theme="dark"] .canvas-area p,
-.scada-layout[data-scada-theme="dark"] .canvas-area div {
+.scada-layout[data-scada-theme="dark"] .canvas-area label:not(.scada-context-menu *),
+.scada-layout[data-scada-theme="dark"] .canvas-area span:not(.scada-context-menu *):not(.scada-menu-text):not(.scada-menu-icon):not(.scada-menu-hotkey),
+.scada-layout[data-scada-theme="dark"] .canvas-area p:not(.scada-context-menu *),
+.scada-layout[data-scada-theme="dark"] .canvas-area div:not(.scada-context-menu):not(.scada-context-menu *):not(.scada-context-menu-item) {
 	color: inherit !important;
 	font-family: inherit !important;
 	line-height: normal !important;

@@ -74,6 +74,7 @@ export interface ComponentConfig {
   data?: ComponentData           // 默认组件数据
   ports?: any                    // X6接线桩配置
   props: ComponentProp[]         // 属性配置列表
+  component?: any                // Vue 组件实例（可选，用于 Vue Shape 注册）
 }
 
 /**

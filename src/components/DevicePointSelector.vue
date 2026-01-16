@@ -4,58 +4,19 @@
 		<div class="modal-container" @click.stop>
 			<!-- 弹窗头部 -->
 			<div class="modal-header">
-				<h3>选择设备点位</h3>
+				<h3>选择点位</h3>
 				<button class="btn-close" @click="handleClose">✕</button>
 			</div>
 			
 			<!-- 弹窗内容 -->
-			<div class="device-point-selector">
-				<!-- 左侧：设备列表 -->
-				<div class="device-list-panel">
-					<div class="panel-header">
-						<h4>设备列表</h4>
-						<span class="device-count">{{ devices.length }}</span>
-					</div>
-					<div class="search-box">
-						<input 
-							v-model="deviceSearchQuery" 
-							type="text" 
-							placeholder="搜索设备..."
-							class="search-input"
-						/>
-					</div>
-					<div class="device-list">
-						<div
-							v-for="device in filteredDevices"
-							:key="device.id"
-							:class="['device-item', { active: selectedDevice?.id === device.id, offline: device.status === 'offline' }]"
-							@click="selectDevice(device)"
-						>
-							<div class="device-info">
-								<div class="device-name">
-									<span class="status-dot" :class="device.status"></span>
-									{{ device.name }}
-								</div>
-								<div class="device-meta">
-									<span class="device-code">{{ device.code }}</span>
-									<span class="point-count">{{ device.points.length }} 点</span>
-								</div>
-							</div>
-							<div class="device-arrow">›</div>
-						</div>
-						<div v-if="filteredDevices.length === 0" class="empty-hint">
-							暂无设备
-						</div>
-					</div>
-				</div>
-
-				<!-- 右侧：点位列表 -->
+			<div class="point-selector">
+				<!-- 点位列表 -->
 				<div class="point-list-panel">
 					<div class="panel-header">
-						<h4>{{ selectedDevice ? selectedDevice.name : '点位列表' }}</h4>
-						<span v-if="selectedDevice" class="point-count">{{ filteredPoints.length }}</span>
+						<h4>{{ deviceName || '点位列表' }}</h4>
+						<span class="point-count">{{ filteredPoints.length }}</span>
 					</div>
-					<div v-if="selectedDevice" class="search-box">
+					<div class="search-box">
 						<input 
 							v-model="pointSearchQuery" 
 							type="text" 
@@ -64,10 +25,7 @@
 						/>
 					</div>
 					<div class="point-list">
-						<div v-if="!selectedDevice" class="empty-hint">
-							← 请先选择设备
-						</div>
-						<div v-else-if="filteredPoints.length === 0" class="empty-hint">
+						<div v-if="filteredPoints.length === 0" class="empty-hint">
 							暂无点位
 						</div>
 						<div
@@ -118,66 +76,58 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { mockDevices } from '../mock/deviceData'
+import { ref, computed, watch } from 'vue'
 import type { Device, DevicePoint } from '../types/device'
 
 const props = defineProps<{
-	visible: boolean     // 是否显示弹窗
-	modelValue?: string  // 格式: deviceId:pointId
-	deviceData?: any     // 设备数据，如果未提供则使用mock数据
+	visible: boolean        // 是否显示弹窗
+	deviceId: string        // 设备ID（必需）
+	deviceName?: string     // 设备名称（可选，用于显示）
+	modelValue?: string     // 当前选中的点位ID
+	deviceData?: any        // 设备数据（必需）
 }>()
 
 const emit = defineEmits<{
 	'update:visible': [value: boolean]
 	'update:modelValue': [value: string]
-	'confirm': [deviceId: string, pointId: string, device: Device, point: DevicePoint]
+	'confirm': [pointId: string, point: DevicePoint]
 }>()
 
-// 设备列表
-const devices = ref(props.deviceData?.devices || mockDevices)
-const selectedDevice = ref<Device | null>(null)
+// 设备信息
+const currentDevice = ref<Device | null>(null)
 const selectedPoint = ref<DevicePoint | null>(null)
-const deviceSearchQuery = ref('')
 const pointSearchQuery = ref('')
 
-// 初始化选中状态
-if (props.modelValue) {
-	const [deviceId, pointId] = props.modelValue.split(':')
-	const device = devices.value.find((d: Device) => d.id === deviceId)
-	if (device) {
-		selectedDevice.value = device
-		selectedPoint.value = device.points.find((p: DevicePoint) => p.id === pointId) || null
+// 监听 deviceData 变化，获取当前设备
+watch(() => [props.deviceData?.devices, props.deviceId], ([newDevices, newDeviceId]) => {
+	if (newDevices && newDeviceId) {
+		const device = newDevices.find((d: Device) => d.id === newDeviceId)
+		currentDevice.value = device || null
+	} else {
+		currentDevice.value = null
 	}
-}
+}, { immediate: true })
 
-// 过滤设备
-const filteredDevices = computed(() => {
-	if (!deviceSearchQuery.value) return devices.value
-	const query = deviceSearchQuery.value.toLowerCase()
-	return devices.value.filter((device: Device) => 
-		device.name.toLowerCase().includes(query) ||
-		device.code.toLowerCase().includes(query)
-	)
-})
+// 初始化选中状态
+watch(() => props.modelValue, (newValue) => {
+	if (newValue && currentDevice.value) {
+		selectedPoint.value = currentDevice.value.points.find((p: DevicePoint) => p.id === newValue) || null
+	}
+}, { immediate: true })
 
 // 过滤点位
 const filteredPoints = computed(() => {
-	if (!selectedDevice.value) return []
-	if (!pointSearchQuery.value) return selectedDevice.value.points
+	if (!currentDevice.value) return []
+	
+	const points = currentDevice.value.points
+	if (!pointSearchQuery.value) return points
+	
 	const query = pointSearchQuery.value.toLowerCase()
-	return selectedDevice.value.points.filter(point =>
-		point.name.toLowerCase().includes(query) ||
-		point.code.toLowerCase().includes(query)
+	return points.filter(point =>
+		point.name?.toLowerCase().includes(query) ||
+		point.code?.toLowerCase().includes(query)
 	)
 })
-
-// 选择设备
-const selectDevice = (device: Device) => {
-	selectedDevice.value = device
-	selectedPoint.value = null
-	pointSearchQuery.value = ''
-}
 
 // 选择点位
 const selectPoint = (point: DevicePoint) => {
@@ -192,11 +142,10 @@ const handleClose = () => {
 
 // 确认选择
 const handleConfirm = () => {
-	if (!selectedDevice.value || !selectedPoint.value) return
+	if (!selectedPoint.value) return
 	
-	const value = `${selectedDevice.value.id}:${selectedPoint.value.id}`
-	emit('update:modelValue', value)
-	emit('confirm', selectedDevice.value.id, selectedPoint.value.id, selectedDevice.value, selectedPoint.value)
+	emit('update:modelValue', selectedPoint.value.id)
+	emit('confirm', selectedPoint.value.id, selectedPoint.value)
 	emit('update:visible', false)
 }
 
@@ -259,7 +208,7 @@ const formatValue = (point: DevicePoint) => {
 
 /* 弹窗容器 */
 .modal-container {
-	width: 800px;
+	width: 500px;
 	max-width: 90vw;
 	max-height: 85vh;
 	background: #0f172a;
@@ -318,10 +267,7 @@ const formatValue = (point: DevicePoint) => {
 }
 
 /* 选择器主体 */
-.device-point-selector {
-	display: grid;
-	grid-template-columns: 1fr 1.5fr;
-	gap: 12px;
+.point-selector {
 	height: 500px;
 	padding: 16px 24px;
 	overflow: hidden;
@@ -372,7 +318,6 @@ const formatValue = (point: DevicePoint) => {
 }
 
 /* 面板通用样式 */
-.device-list-panel,
 .point-list-panel {
 	display: flex;
 	flex-direction: column;
@@ -380,6 +325,7 @@ const formatValue = (point: DevicePoint) => {
 	border: 1px solid #334155;
 	border-radius: 6px;
 	overflow: hidden;
+	height: 100%;
 }
 
 .panel-header {
@@ -398,7 +344,6 @@ const formatValue = (point: DevicePoint) => {
 	color: #e2e8f0;
 }
 
-.device-count,
 .point-count {
 	font-size: 12px;
 	color: #94a3b8;
@@ -435,96 +380,10 @@ const formatValue = (point: DevicePoint) => {
 }
 
 /* 列表容器 */
-.device-list,
 .point-list {
 	flex: 1;
 	overflow-y: auto;
 	padding: 8px;
-}
-
-/* 设备项 */
-.device-item {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	padding: 12px;
-	margin-bottom: 4px;
-	background: #0f172a;
-	border: 1px solid #334155;
-	border-radius: 4px;
-	cursor: pointer;
-	transition: all 0.2s;
-}
-
-.device-item:hover {
-	background: #1e293b;
-	border-color: #3b82f6;
-}
-
-.device-item.active {
-	background: rgba(59, 130, 246, 0.1);
-	border-color: #3b82f6;
-}
-
-.device-item.offline {
-	opacity: 0.6;
-}
-
-.device-info {
-	flex: 1;
-}
-
-.device-name {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	font-size: 13px;
-	font-weight: 500;
-	color: #e2e8f0;
-	margin-bottom: 4px;
-}
-
-.status-dot {
-	width: 8px;
-	height: 8px;
-	border-radius: 50%;
-	background: #64748b;
-}
-
-.status-dot.online {
-	background: #10b981;
-	box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
-}
-
-.status-dot.offline {
-	background: #64748b;
-}
-
-.status-dot.error {
-	background: #ef4444;
-	box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
-}
-
-.device-meta {
-	display: flex;
-	gap: 12px;
-	font-size: 11px;
-	color: #94a3b8;
-}
-
-.device-code {
-	font-family: monospace;
-}
-
-.device-arrow {
-	font-size: 18px;
-	color: #64748b;
-	transition: all 0.2s;
-}
-
-.device-item:hover .device-arrow {
-	color: #3b82f6;
-	transform: translateX(2px);
 }
 
 /* 点位项 */
@@ -653,23 +512,19 @@ const formatValue = (point: DevicePoint) => {
 }
 
 /* 滚动条样式 */
-.device-list::-webkit-scrollbar,
 .point-list::-webkit-scrollbar {
 	width: 6px;
 }
 
-.device-list::-webkit-scrollbar-track,
 .point-list::-webkit-scrollbar-track {
 	background: #0f172a;
 }
 
-.device-list::-webkit-scrollbar-thumb,
 .point-list::-webkit-scrollbar-thumb {
 	background: #334155;
 	border-radius: 3px;
 }
 
-.device-list::-webkit-scrollbar-thumb:hover,
 .point-list::-webkit-scrollbar-thumb:hover {
 	background: #475569;
 }

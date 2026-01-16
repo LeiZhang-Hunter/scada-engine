@@ -1,5 +1,6 @@
 import type { ComponentConfig } from '../types'
 import { gaugePresets } from './echarts-gauge-presets'
+import EChartsGauge from './EChartsGauge.vue'
 
 /**
  * ECharts 仪表盘组件配置
@@ -14,6 +15,7 @@ export const EChartsGaugeComponent: ComponentConfig = {
     version: '1.0.0'
   },
   shape: 'echarts-vue',
+  component: EChartsGauge,  // 添加 Vue 组件引用
   width: 200,
   height: 200,
   label: '',

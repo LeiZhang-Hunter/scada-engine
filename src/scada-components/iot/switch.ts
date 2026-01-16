@@ -1,4 +1,5 @@
 import type { ComponentConfig } from '../types'
+import Switch3D from './Switch3D.vue'
 
 /**
  * 3D开关组件配置
@@ -13,6 +14,7 @@ export const SwitchComponent: ComponentConfig = {
     version: '2.0.0'
   },
   shape: 'switch-3d-vue',
+  component: Switch3D,
   width: 140,
   height: 100,
   label: '',

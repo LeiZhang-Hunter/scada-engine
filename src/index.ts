@@ -60,9 +60,6 @@ export {
   // 消息提示
   showMessage,
   // 存储工具
-  saveToSession,
-  loadFromSession,
-  removeFromSession,
   saveToLocal,
   loadFromLocal,
   removeFromLocal,
@@ -133,7 +130,7 @@ export interface BindingConfig {
  */
 export interface ScadaCanvasExposed {
   // === 文件操作 ===
-  /** 保存画布数据到 sessionStorage */
+  /** 保存画布数据到 localStorage */
   save: () => void
   /** 触发文件选择，导入 JSON 数据 */
   import: () => void
