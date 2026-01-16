@@ -14,6 +14,7 @@ export class CanvasConfigWatcher {
   private graph: Graph | null = null
   private containerRef: Ref<any> | null = null
   private calculateFitScale: (() => number) | null = null
+  private updateContainerSizeFn: (() => void) | null = null
 
   /**
    * 初始化配置监听器
@@ -21,11 +22,13 @@ export class CanvasConfigWatcher {
   initialize(
     graph: Graph,
     containerRef: Ref<any>,
-    calculateFitScale: () => number
+    calculateFitScale: () => number,
+    updateContainerSizeFn?: () => void
   ): void {
     this.graph = graph
     this.containerRef = containerRef
     this.calculateFitScale = calculateFitScale
+    this.updateContainerSizeFn = updateContainerSizeFn || null
   }
 
   /**
@@ -79,20 +82,31 @@ export class CanvasConfigWatcher {
     const container = this.containerRef.value?.containerRef
     if (!container) return
 
-    // 更新 Graph 尺寸
+    // 更新 Graph 逻辑尺寸
     this.graph.resize(size.width, size.height)
     
-    // 同时更新容器基础尺寸
-    container.style.width = `${size.width}px`
-    container.style.height = `${size.height}px`
-    
-    // 如果用户手动修改了缩放，使用用户设置的值；否则重新计算自适应缩放
-    if (this.calculateFitScale) {
-      const fitScale = this.calculateFitScale()
-      const finalScale = zoomScale > fitScale ? zoomScale : fitScale
-      container.style.transform = `scale(${finalScale})`
-      container.style.transformOrigin = 'center center'
+    // 如果有外部提供的容器尺寸更新函数，使用它
+    if (this.updateContainerSizeFn) {
+      this.updateContainerSizeFn()
+    } else {
+      // 否则使用默认逻辑（兼容旧代码）
+      container.style.width = `${size.width}px`
+      container.style.height = `${size.height}px`
+      
+      if (this.calculateFitScale) {
+        const fitScale = this.calculateFitScale()
+        const finalScale = zoomScale > fitScale ? zoomScale : fitScale
+        this.graph.scale(finalScale, finalScale)
+        this.graph.centerContent()
+      }
     }
+    
+    console.log('🔄 [Config Watcher] 更新尺寸和X6缩放', {
+      size,
+      zoomScale,
+      containerTransform: container.style.transform || 'none',
+      graphScale: this.graph.scale()
+    })
   }
 
   /**
@@ -127,6 +141,7 @@ export class CanvasConfigWatcher {
     this.graph = null
     this.containerRef = null
     this.calculateFitScale = null
+    this.updateContainerSizeFn = null
   }
 }
 

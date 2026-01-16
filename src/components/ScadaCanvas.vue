@@ -220,7 +220,7 @@ const mergedDeviceData = computed(() => {
 	return { devices }
 })
 
-// 自动计算适合的缩放比例
+// 自动计算适合的缩放比例（保持宽高比）
 const calculateFitScale = () => {
 	const canvasArea = canvasAreaRef.value?.containerRef?.parentElement
 	if (!canvasArea) return 1
@@ -237,14 +237,138 @@ const calculateFitScale = () => {
 	const availableWidth = areaWidth - padding
 	const availableHeight = areaHeight - padding
 	
-	// 计算宽度和高度的缩放比例
-	const scaleX = availableWidth / canvasWidth
-	const scaleY = availableHeight / canvasHeight
+	// 计算画布的宽高比
+	const canvasRatio = canvasWidth / canvasHeight
 	
-	// 取较小的比例，确保画布完全可见
-	const autoScale = Math.min(scaleX, scaleY, 1) // 最大不超过1（100%）
+	// 计算可用区域的宽高比
+	const availableRatio = availableWidth / availableHeight
 	
-	return autoScale
+	// 根据宽高比决定是以宽度还是高度为基准进行缩放
+	let autoScale
+	let scaleBy
+	if (canvasRatio > availableRatio) {
+		// 画布更宽（如 16:9 画布 vs 正方形容器），以宽度为基准
+		autoScale = availableWidth / canvasWidth
+		scaleBy = 'width'
+	} else {
+		// 画布更高（如 16:9 画布 vs 竖向容器），以高度为基准
+		autoScale = availableHeight / canvasHeight
+		scaleBy = 'height'
+	}
+	
+	// 最大不超过1（100%），避免画布被放大
+	const finalScale = Math.min(autoScale, 1)
+	
+	// 调试日志
+	console.log('📏 [Calculate Scale]', {
+		canvasSize: { width: canvasWidth, height: canvasHeight },
+		canvasRatio: canvasRatio.toFixed(2),
+		areaSize: { width: areaWidth, height: areaHeight },
+		availableSize: { width: availableWidth, height: availableHeight },
+		availableRatio: availableRatio.toFixed(2),
+		autoScale: autoScale.toFixed(3),
+		finalScale: finalScale.toFixed(3),
+		scaleBy,
+		analysis: `画布${canvasRatio > availableRatio ? '更宽' : '更高'}，以${scaleBy === 'width' ? '宽度' : '高度'}为基准缩放`
+	})
+	
+	return finalScale
+}
+
+// 计算容器的实际显示尺寸（根据可用空间和宽高比）
+const calculateContainerSize = (): { width: number; height: number; canvasWidth: number; canvasHeight: number } | null => {
+	if (!canvasAreaRef.value?.containerRef) return null
+	
+	const canvasConfig = canvasConfigManager.getConfig()
+	const canvasWidth = canvasConfig.size.width
+	const canvasHeight = canvasConfig.size.height
+	const canvasRatio = canvasWidth / canvasHeight
+	
+	const canvasArea = canvasAreaRef.value.containerRef.parentElement
+	if (!canvasArea) return null
+	
+	const areaWidth = canvasArea.clientWidth
+	const areaHeight = canvasArea.clientHeight
+	const padding = 40
+	const availableWidth = areaWidth - padding
+	const availableHeight = areaHeight - padding
+	const availableRatio = availableWidth / availableHeight
+	
+	// 根据宽高比计算最佳显示尺寸
+	let displayWidth, displayHeight
+	if (canvasRatio > availableRatio) {
+		// 画布更宽，以可用宽度为基准
+		displayWidth = availableWidth
+		displayHeight = availableWidth / canvasRatio
+	} else {
+		// 画布更高，以可用高度为基准
+		displayHeight = availableHeight
+		displayWidth = availableHeight * canvasRatio
+	}
+	
+	// 确保不超过逻辑尺寸
+	displayWidth = Math.min(displayWidth, canvasWidth)
+	displayHeight = Math.min(displayHeight, canvasHeight)
+	
+	console.log('🎨 [Container Size]', {
+		logicSize: { width: canvasWidth, height: canvasHeight },
+		availableSize: { width: availableWidth, height: availableHeight },
+		displaySize: { width: Math.round(displayWidth), height: Math.round(displayHeight) },
+		canvasRatio: canvasRatio.toFixed(2),
+		availableRatio: availableRatio.toFixed(2),
+		scaleBy: canvasRatio > availableRatio ? 'width' : 'height',
+		padding
+	})
+	
+	return { width: displayWidth, height: displayHeight, canvasWidth, canvasHeight }
+}
+
+// 设置容器尺寸并应用 X6 缩放
+const updateContainerTransform = () => {
+	if (!graph || !canvasAreaRef.value?.containerRef) return
+	
+	const container = canvasAreaRef.value.containerRef
+	const sizeData = calculateContainerSize()
+	if (!sizeData) return
+	
+	const { width: displayWidth, height: displayHeight, canvasWidth, canvasHeight } = sizeData
+	
+	// 设置容器的实际尺寸（而不是固定 1920x1080）
+	container.style.width = `${displayWidth}px`
+	container.style.height = `${displayHeight}px`
+	
+	// 不使用 CSS transform，避免框选不同步
+	// container.style.transform = `scale(${scale})`
+	
+	// 使用 X6 内置缩放（等 graph 创建后再应用）
+	if (graph) {
+		// 计算 X6 缩放比例：显示尺寸 / 逻辑尺寸
+		const x6Scale = displayWidth / canvasWidth
+		graph.scale(x6Scale, x6Scale)
+		graph.centerContent()
+		
+		// 同步更新配置中的缩放值
+		canvasConfigManager.updateByPath('zoom.scale', Number(x6Scale.toFixed(2)))
+	}
+	
+	// 调试日志
+	console.log('📐 [Canvas Scale]', {
+		logicSize: { width: canvasWidth, height: canvasHeight },
+		displaySize: { width: displayWidth, height: displayHeight },
+		x6Scale: graph ? (displayWidth / canvasWidth).toFixed(3) : 'not created',
+		containerStyle: {
+			width: container.style.width,
+			height: container.style.height
+		},
+		containerActual: {
+			clientWidth: container.clientWidth,
+			clientHeight: container.clientHeight,
+			offsetWidth: container.offsetWidth,
+			offsetHeight: container.offsetHeight
+		},
+		graphScale: graph ? graph.scale() : 'not created yet',
+		graphSize: graph ? { width: graph.options.width, height: graph.options.height } : 'not created'
+	})
 }
 
 onMounted(() => {
@@ -337,30 +461,23 @@ onMounted(() => {
 	// 初始化 X6 画布
 	const container = canvasAreaRef.value.containerRef
 	
-	// 使用配置中的画布尺寸
+	// 使用配置中的画布尺寸作为逻辑尺寸
 	const canvasWidth = canvasConfig.size.width
 	const canvasHeight = canvasConfig.size.height
 	
-	// 设置容器尺寸和缩放
-	const updateContainerTransform = (scale: number) => {
-		// 设置容器的基础尺寸
-		container.style.width = `${canvasWidth}px`
-		container.style.height = `${canvasHeight}px`
-		// 使用 transform 缩放
-		container.style.transform = `scale(${scale})`
-		container.style.transformOrigin = 'center center'
-		// 同步更新配置中的缩放值
-		canvasConfigManager.updateByPath('zoom.scale', Number(scale.toFixed(2)))
-	}
-	
-	// 应用初始自适应缩放
+	// 计算初始缩放比例（稍后应用）
 	const initialScale = calculateFitScale()
-	updateContainerTransform(initialScale)
+	console.log('🎬 [Canvas Init] 初始化画布', {
+		initialScale,
+		canvasSize: { width: canvasWidth, height: canvasHeight },
+		containerElement: canvasAreaRef.value?.containerRef
+	})
+	// 不立即应用缩放，等待 graph 创建后
+	// updateContainerTransform(initialScale)
 	
-	// 监听窗口大小变化，自动调整缩放
+	// 监听窗口大小变化，自动调整容器尺寸
 	const handleResize = () => {
-		const fitScale = calculateFitScale()
-		updateContainerTransform(fitScale)
+		updateContainerTransform() // 自动计算尺寸
 	}
 	
 	window.addEventListener('resize', handleResize)
@@ -437,6 +554,8 @@ onMounted(() => {
 
 	// 使用插件:选择插件（仅编辑模式）
 	if (!props.previewMode) {
+		console.log('🎯 [Selection Plugin] 初始化框选插件')
+		
 		graph.use(
 			new Selection({
 				enabled: true,
@@ -448,6 +567,45 @@ onMounted(() => {
 				pointerEvents: 'none' // 不阻止鼠标事件
 			})
 		)
+		
+		// 监听框选事件
+		graph.on('selection:changed', ({ selected }) => {
+			console.log('✅ [Selection] 选中变化:', selected.length, '个元素')
+		})
+		
+		// 添加鼠标事件监听（调试用）
+		let isRubberbanding = false
+		graph.on('blank:mousedown', (args) => {
+			isRubberbanding = true
+			const { e, x, y } = args
+			console.log('🖱️ [Rubberband Start]', {
+				clientX: e.clientX,
+				clientY: e.clientY,
+				graphX: x,
+				graphY: y,
+				containerTransform: container.style.transform,
+				containerRect: container.getBoundingClientRect()
+			})
+		})
+		
+		graph.on('blank:mousemove', (args) => {
+			if (isRubberbanding) {
+				const { e, x, y } = args
+				console.log('🖱️ [Rubberband Move]', {
+					clientX: e.clientX,
+					clientY: e.clientY,
+					graphX: x,
+					graphY: y
+				})
+			}
+		})
+		
+		graph.on('blank:mouseup', () => {
+			if (isRubberbanding) {
+				isRubberbanding = false
+				console.log('🖱️ [Rubberband End]')
+			}
+		})
 	}
 
 	// 使用插件：对齐参考线
@@ -461,7 +619,13 @@ onMounted(() => {
 		)
 	}
 
-	// 不需要再应用初始缩放，因为容器已经根据 scale 调整了尺寸
+	// 现在应用初始容器尺寸（graph 已创建）
+	// 使用 nextTick 确保侧边栏已完全渲染
+	Promise.resolve().then(() => {
+		setTimeout(() => {
+			updateContainerTransform() // 自动计算尺寸
+		}, 100) // 延迟100ms确保DOM完全渲染
+	})
 
 	// ========== 初始化工具类 ==========
 	graphOperations.setGraph(graph)
@@ -473,7 +637,9 @@ onMounted(() => {
 	dataBindingService.initDataBinding()
 
 	// ========== 初始化配置监听器 ==========
-	canvasConfigWatcher.initialize(graph, canvasAreaRef, calculateFitScale)
+	canvasConfigWatcher.initialize(graph, canvasAreaRef, calculateFitScale, () => {
+		updateContainerTransform()
+	})
 
 	// 尝试恢复之前保存的画布数据（仅编辑模式）
 	if (!props.previewMode) {
@@ -597,6 +763,16 @@ watch(
 	() => canvasConfigWatcher.applyConfigChanges(),
 	{ deep: true }
 )
+
+// 监听侧边栏展开/收起状态，自动调整画布尺寸
+watch([leftPanelCollapsed, rightPanelCollapsed], () => {
+	// 延迟执行，等待侧边栏动画完成（CSS transition 0.3s）
+	setTimeout(() => {
+		if (graph) {
+			updateContainerTransform()
+		}
+	}, 350) // 稍微大于 CSS transition 时间
+})
 
 // 添加节点（根据类型）
 const handleAddNode = (type: string) => {

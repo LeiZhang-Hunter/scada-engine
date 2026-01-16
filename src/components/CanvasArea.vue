@@ -18,11 +18,12 @@ defineExpose({
 .canvas-area {
 	flex: 1;
 	display: flex;
-	align-items: center;
-	justify-content: center;
+	align-items: flex-start; /* 改为center会导致滚动问题 */
+	justify-content: flex-start; /* 改为center会导致滚动问题 */
 	background: #0f172a;
-	overflow: auto;
+	overflow: auto; /* 允许滚动 */
 	position: relative;
+	padding: 20px; /* 留出一些边距 */
 }
 
 .canvas-container {
