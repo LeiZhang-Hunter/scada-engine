@@ -56,14 +56,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-
-export interface ElementInfo {
-	id: string
-	name: string
-	type: string
-	icon: string
-	properties: Array<{ key: string; label: string }>
-}
+import type { ElementInfo } from '../types/element'
 
 interface Props {
 	visible: boolean

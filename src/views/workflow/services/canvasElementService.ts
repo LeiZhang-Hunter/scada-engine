@@ -4,7 +4,7 @@
  */
 
 import type { Graph } from '@antv/x6'
-import type { ElementInfo } from '../components/ElementSelector.vue'
+import type { ElementInfo } from '../types/element'
 import { componentRegistry } from '@/scada-components/registry'
 
 /**
@@ -23,17 +23,17 @@ class CanvasElementService {
 	/**
 	 * 获取画布所有图元
 	 */
-	getElements(): ElementInfo[] {
+	async getElements(): Promise<ElementInfo[]> {
 		if (!this.graph) {
 			console.warn('画布实例未初始化')
 			return []
 		}
 
 		const nodes = this.graph.getNodes()
-		return nodes.map(node => {
+		const elements = await Promise.all(nodes.map(async node => {
 			const data = node.getData() || {}
 			const componentType = data.type || node.shape
-			const componentConfig = componentRegistry.getComponent(componentType)
+			const componentConfig = await componentRegistry.getComponent(componentType)
 
 			// 获取图元属性列表
 			const properties = this.getElementProperties(node, componentConfig)
@@ -46,7 +46,9 @@ class CanvasElementService {
 				icon: componentConfig?.metadata.icon || '📦',
 				properties
 			}
-		})
+		}))
+		
+		return elements
 	}
 
 	/**
@@ -78,16 +80,16 @@ class CanvasElementService {
 	/**
 	 * 根据ID获取图元
 	 */
-	getElementById(id: string): ElementInfo | null {
-		const elements = this.getElements()
+	async getElementById(id: string): Promise<ElementInfo | null> {
+		const elements = await this.getElements()
 		return elements.find(el => el.id === id) || null
 	}
 
 	/**
 	 * 搜索图元
 	 */
-	searchElements(keyword: string): ElementInfo[] {
-		const elements = this.getElements()
+	async searchElements(keyword: string): Promise<ElementInfo[]> {
+		const elements = await this.getElements()
 		const lowerKeyword = keyword.toLowerCase()
 
 		return elements.filter(el =>

@@ -37,7 +37,8 @@
 <script setup lang="ts">
 import { reactive, ref, computed, inject, onMounted } from 'vue'
 import type { GetPropertyNodeConfig } from '../../types/node'
-import ElementSelector, { type ElementInfo } from '../ElementSelector.vue'
+import ElementSelector from '../ElementSelector.vue'
+import type { ElementInfo } from '../../types/element'
 import type { canvasElementService as CanvasElementServiceType } from '../../services/canvasElementService'
 
 interface Props {
@@ -76,10 +77,10 @@ const handleUpdate = () => {
 }
 
 // 从画布中选择图元
-const selectElementFromCanvas = () => {
+const selectElementFromCanvas = async () => {
 	// 刷新画布图元列表
 	if (canvasElementService) {
-		canvasElements.value = canvasElementService.getElements()
+		canvasElements.value = await canvasElementService.getElements()
 	}
 	showSelector.value = true
 }
@@ -94,10 +95,10 @@ const handleElementSelected = (element: ElementInfo) => {
 }
 
 // 初始化
-onMounted(() => {
+onMounted(async () => {
 	// 从画布服务获取图元列表
 	if (canvasElementService) {
-		canvasElements.value = canvasElementService.getElements()
+		canvasElements.value = await canvasElementService.getElements()
 	}
 	
 	// 如果已有 elementId，恢复 elementName

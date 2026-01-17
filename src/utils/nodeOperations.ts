@@ -36,10 +36,10 @@ export class NodeOperations {
   /**
    * 添加节点
    */
-  addNode(type: string, position?: { x: number; y: number }): Node | null {
+  async addNode(type: string, position?: { x: number; y: number }): Promise<Node | null> {
     if (!this.graph) return null
 
-    const config = componentRegistry.getComponent(type)
+    const config = await componentRegistry.getComponent(type)
     if (!config) {
       console.error(`未找到组件配置: ${type}`)
       return null

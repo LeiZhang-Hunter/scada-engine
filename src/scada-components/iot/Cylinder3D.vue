@@ -162,13 +162,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { animationScheduler } from '../../utils/animationScheduler'
 
 interface Props {
   node?: any
 }
 
 const props = defineProps<Props>()
-const nodeId = ref(`cylinder-${Math.random().toString(36).substr(2, 9)}`)
+const nodeId = computed(() => props.node?.id || `cylinder-${Math.random().toString(36).substr(2, 9)}`)
 
 const getData = () => {
   if (!props.node) return {}
@@ -180,9 +181,6 @@ const position = ref(0)  // 当前位置 (mm)
 const stroke = ref(50)   // 行程 (mm)
 const speed = ref(200)   // 速度 (mm/s)
 const action = ref<'extend' | 'retract' | 'stop'>('stop')
-
-let animationId: number | null = null
-let lastTime = Date.now()
 
 const isExtended = computed(() => position.value >= stroke.value)
 const isRetracted = computed(() => position.value <= 0)
@@ -218,26 +216,30 @@ const statusClass = computed(() => {
   return ''
 })
 
-const animate = () => {
-  const currentTime = Date.now()
-  const deltaTime = (currentTime - lastTime) / 1000  // 转换为秒
-  lastTime = currentTime
+const animate = (deltaTime: number) => {
+  const deltaTimeInSeconds = deltaTime / 1000  // 转换为秒
   
   if (action.value === 'extend' && position.value < stroke.value) {
-    position.value = Math.min(stroke.value, position.value + speed.value * deltaTime)
+    position.value = Math.min(stroke.value, position.value + speed.value * deltaTimeInSeconds)
   } else if (action.value === 'retract' && position.value > 0) {
-    position.value = Math.max(0, position.value - speed.value * deltaTime)
+    position.value = Math.max(0, position.value - speed.value * deltaTimeInSeconds)
   }
   
   // 四舍五入到整数
   position.value = Math.round(position.value)
-  
-  animationId = requestAnimationFrame(animate)
 }
 
 const updateCylinder = () => {
   const data = getData()
-  action.value = data.action || 'stop'
+  const newAction = data.action || 'stop'
+  const isMoving = newAction !== 'stop'
+  
+  // 状态变化时启用/禁用动画
+  if (newAction !== action.value) {
+    animationScheduler.setEnabled(nodeId.value, isMoving)
+  }
+  
+  action.value = newAction
   stroke.value = data.stroke || 50
   speed.value = data.speed || 200
   
@@ -253,8 +255,10 @@ watch(() => props.node, () => {
 
 onMounted(() => {
   updateCylinder()
-  lastTime = Date.now()
-  animate()
+  
+  // 注册动画，只在运动时启用
+  animationScheduler.register(nodeId.value, animate)
+  animationScheduler.setEnabled(nodeId.value, action.value !== 'stop')
   
   if (props.node && typeof props.node.on === 'function') {
     props.node.on('change:data', () => {
@@ -264,9 +268,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (animationId) {
-    cancelAnimationFrame(animationId)
-  }
+  animationScheduler.unregister(nodeId.value)
 })
 </script>
 

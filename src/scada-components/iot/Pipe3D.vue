@@ -153,13 +153,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { animationScheduler } from '../../utils/animationScheduler'
 
 interface Props {
   node?: any
 }
 
 const props = defineProps<Props>()
-const nodeId = ref(`pipe-${Math.random().toString(36).substr(2, 9)}`)
+const nodeId = computed(() => props.node?.id || `pipe-${Math.random().toString(36).substr(2, 9)}`)
 
 const getData = () => {
   if (!props.node) return {}
@@ -189,20 +190,24 @@ const centerY = computed(() => (diameter.value + 10) / 2)
 const centerX = computed(() => (diameter.value + 10) / 2)
 
 const flowOffset = ref(0)
-let animationId: number | null = null
 
-const animate = () => {
+const animate = (deltaTime: number) => {
   if (isFlowing.value) {
-    const speed = flowRate.value / 5
+    const factor = deltaTime / 16.67
+    const speed = (flowRate.value / 5) * factor
     flowOffset.value = (flowOffset.value + speed) % pipeLength.value
   }
-  
-  animationId = requestAnimationFrame(animate)
 }
 
 const updatePipe = () => {
   const data = getData()
-  isFlowing.value = data.state === 'flowing' || data.state === true
+  const newFlowing = data.state === 'flowing' || data.state === true
+  
+  if (newFlowing !== isFlowing.value) {
+    animationScheduler.setEnabled(nodeId.value, newFlowing)
+  }
+  
+  isFlowing.value = newFlowing
   flowRate.value = data.flowRate || 10
   direction.value = data.direction || 'horizontal'
   fluidColor.value = data.fluidColor || '#3b82f6'
@@ -216,7 +221,9 @@ watch(() => props.node, () => {
 
 onMounted(() => {
   updatePipe()
-  animate()
+  
+  animationScheduler.register(nodeId.value, animate)
+  animationScheduler.setEnabled(nodeId.value, isFlowing.value)
   
   if (props.node && typeof props.node.on === 'function') {
     props.node.on('change:data', () => {
@@ -226,9 +233,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (animationId) {
-    cancelAnimationFrame(animationId)
-  }
+  animationScheduler.unregister(nodeId.value)
 })
 </script>
 

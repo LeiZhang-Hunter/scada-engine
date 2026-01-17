@@ -94,7 +94,6 @@ const selectWorkflowItem = (workflow: Workflow) => {
 
 // 预览流程
 const previewWorkflow = (workflow: Workflow) => {
-	console.log('预览流程:', workflow)
 	// TODO: 实现流程预览功能
 }
 

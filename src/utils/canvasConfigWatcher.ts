@@ -100,13 +100,6 @@ export class CanvasConfigWatcher {
         this.graph.centerContent()
       }
     }
-    
-    console.log('🔄 [Config Watcher] 更新尺寸和X6缩放', {
-      size,
-      zoomScale,
-      containerTransform: container.style.transform || 'none',
-      graphScale: this.graph.scale()
-    })
   }
 
   /**

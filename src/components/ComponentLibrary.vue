@@ -52,7 +52,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, reactive, onMounted, ref } from 'vue'
 import { componentRegistry } from '../scada-components'
 import type { ComponentConfig } from '../scada-components'
 
@@ -84,18 +84,34 @@ const toggleSection = (section: 'basic' | 'iot') => {
 	collapsedSections[section] = !collapsedSections[section]
 }
 
-// 从注册表获取组件
-const basicComponents = computed(() => 
-	componentRegistry.getComponentsByCategory('basic')
-)
+// 强制刷新标记
+const refreshKey = ref(0)
 
-const iotComponents = computed(() => 
-	componentRegistry.getComponentsByCategory('iot')
-)
+// 从注册表获取组件
+const basicComponents = computed(() => {
+	refreshKey.value // 依赖刷新标记
+	return componentRegistry.getComponentsByCategory('basic')
+})
+
+const iotComponents = computed(() => {
+	refreshKey.value // 依赖刷新标记
+	return componentRegistry.getComponentsByCategory('iot')
+})
 
 const handleAddComponent = (component: ComponentConfig) => {
 	emit('addComponent', component.metadata.id)
 }
+
+// 在组件挂载时预加载所有组件
+onMounted(async () => {
+	try {
+		await componentRegistry.preloadAllComponents()
+		// 强制刷新计算属性
+		refreshKey.value++
+	} catch (error) {
+		console.error('[组件库] 预加载组件失败:', error)
+	}
+})
 </script>
 
 <style scoped>

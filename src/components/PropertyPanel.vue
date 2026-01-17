@@ -283,7 +283,13 @@ const componentPoints = computed<ComponentPoint[]>(() => {
 })
 
 // 监听选中节点变化，加载事件配置
-watch(() => props.selectedNode, (node) => {
+watch(() => props.selectedNode, (node, oldNode) => {
+	// 清理旧节点的事件监听
+	if (oldNode) {
+		oldNode.off('change:position')
+		oldNode.off('change:size')
+	}
+	
 	if (node?.data?.events) {
 		const events = JSON.parse(JSON.stringify(node.data.events))
 		// 确保每个事件都有ID
@@ -306,76 +312,23 @@ watch(() => props.selectedNode, (node) => {
 		bindingList.value = []
 	}
 	collapsedBindings.value.clear()
+	
+	// 监听节点位置变化
+	if (node) {
+		node.on('change:position', () => {
+			positionUpdateCounter.value++
+		})
+		
+		// 监听节点尺寸变化
+		node.on('change:size', () => {
+			sizeUpdateCounter.value++
+		})
+	}
 }, { immediate: true })
 
 // 创建一个更新计数器，用于强制重新计算 computed 属性
 const positionUpdateCounter = ref(0)
 const sizeUpdateCounter = ref(0)
-
-// 监听节点位置和尺寸的变化
-let positionCheckInterval: any = null
-let lastPosition = { x: 0, y: 0 }
-let lastSize = { width: 0, height: 0 }
-
-watch(() => props.selectedNode, (node) => {
-	// 清除之前的轮询
-	if (positionCheckInterval) {
-		clearInterval(positionCheckInterval)
-		positionCheckInterval = null
-	}
-	
-	if (node) {
-		// 初始化位置和尺寸，添加数据验证
-		const pos = node.getPosition()
-		const size = node.getSize()
-		
-		// 验证数据格式
-		if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
-			lastPosition = pos
-		} else {
-			lastPosition = { x: 0, y: 0 }
-			console.warn('节点位置数据异常:', pos)
-		}
-		
-		if (size && typeof size.width === 'number' && typeof size.height === 'number') {
-			lastSize = size
-		} else {
-			lastSize = { width: 0, height: 0 }
-			console.warn('节点尺寸数据异常:', size)
-		}
-		
-		// 定期检查节点位置和尺寸是否变化
-		positionCheckInterval = setInterval(() => {
-			if (props.selectedNode) {
-				const currentPos = props.selectedNode.getPosition()
-				const currentSize = props.selectedNode.getSize()
-				
-				// 验证并检查位置是否变化
-				if (currentPos && typeof currentPos.x === 'number' && typeof currentPos.y === 'number') {
-					if (currentPos.x !== lastPosition.x || currentPos.y !== lastPosition.y) {
-						lastPosition = currentPos
-						positionUpdateCounter.value++
-					}
-				}
-				
-				// 验证并检查尺寸是否变化
-				if (currentSize && typeof currentSize.width === 'number' && typeof currentSize.height === 'number') {
-					if (currentSize.width !== lastSize.width || currentSize.height !== lastSize.height) {
-						lastSize = currentSize
-						sizeUpdateCounter.value++
-					}
-				}
-			}
-		}, 50) // 每 50ms 检查一次
-	}
-})
-
-// 组件销毁时清理轮询
-onUnmounted(() => {
-	if (positionCheckInterval) {
-		clearInterval(positionCheckInterval)
-	}
-})
 
 // 使用 computed 获取节点属性，确保响应式更新
 const nodePosition = computed(() => {
@@ -472,14 +425,10 @@ const updateDynamicProp = (path: string, value: any) => {
 		}
 		current[pathParts[pathParts.length - 1]] = value
 		
-		console.log('[PropertyPanel] 更新属性:', path, '=', value)
-		console.log('[PropertyPanel] 节点类型:', props.selectedNode.shape)
-		
 		// 特殊处理：ECharts 仪表盘预设切换
 		// 只更新 presetId，不合并预设配置到 data
 		// 让 Vue 组件根据 presetId 自己应用配置
 		if (path === 'data.presetId' && props.selectedNode.shape === 'echarts-vue') {
-			console.log('[PropertyPanel] 检测到预设切换，只更新 presetId')
 			// 不需要在这里合并配置，Vue 组件会自己处理
 		}
 		

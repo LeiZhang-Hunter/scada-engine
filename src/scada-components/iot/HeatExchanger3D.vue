@@ -161,13 +161,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { animationScheduler } from '../../utils/animationScheduler'
 
 interface Props {
   node?: any
 }
 
 const props = defineProps<Props>()
-const nodeId = ref(`hex-${Math.random().toString(36).substr(2, 9)}`)
+const nodeId = computed(() => props.node?.id || `hex-${Math.random().toString(36).substr(2, 9)}`)
 
 const getData = () => {
   if (!props.node) return {}
@@ -202,22 +203,26 @@ const hotOutOffset = ref(0)
 const coldInOffset = ref(0)
 const coldOutOffset = ref(0)
 
-let animationId: number | null = null
-
-const animate = () => {
+const animate = (deltaTime: number) => {
   if (isWorking.value) {
-    hotInOffset.value = (hotInOffset.value + 0.5) % 20
-    hotOutOffset.value = (hotOutOffset.value + 0.5) % 20
-    coldInOffset.value = (coldInOffset.value + 0.5) % 20
-    coldOutOffset.value = (coldOutOffset.value + 0.5) % 20
+    const factor = deltaTime / 16.67
+    const speed = 0.5 * factor
+    hotInOffset.value = (hotInOffset.value + speed) % 20
+    hotOutOffset.value = (hotOutOffset.value + speed) % 20
+    coldInOffset.value = (coldInOffset.value + speed) % 20
+    coldOutOffset.value = (coldOutOffset.value + speed) % 20
   }
-  
-  animationId = requestAnimationFrame(animate)
 }
 
 const updateHeatExchanger = () => {
   const data = getData()
-  isWorking.value = data.state === 'working' || data.state === true
+  const newWorking = data.state === 'working' || data.state === true
+  
+  if (newWorking !== isWorking.value) {
+    animationScheduler.setEnabled(nodeId.value, newWorking)
+  }
+  
+  isWorking.value = newWorking
   hotTempIn.value = data.hotTempIn || 80
   hotTempOut.value = data.hotTempOut || 50
   coldTempIn.value = data.coldTempIn || 20
@@ -231,7 +236,9 @@ watch(() => props.node, () => {
 
 onMounted(() => {
   updateHeatExchanger()
-  animate()
+  
+  animationScheduler.register(nodeId.value, animate)
+  animationScheduler.setEnabled(nodeId.value, isWorking.value)
   
   if (props.node && typeof props.node.on === 'function') {
     props.node.on('change:data', () => {
@@ -241,9 +248,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (animationId) {
-    cancelAnimationFrame(animationId)
-  }
+  animationScheduler.unregister(nodeId.value)
 })
 </script>
 

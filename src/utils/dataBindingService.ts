@@ -18,6 +18,11 @@ import { MappingType, type BindingConfig, type MappingConfig } from '../types/bi
 export class DataBindingService {
   private graph: Graph | null = null
   private dataCallbackRegistered = false
+  
+  // 批处理相关
+  private updateQueue: Map<string, Record<string, any>> = new Map()
+  private flushTimer: number | null = null
+  private readonly FLUSH_DELAY = 16 // 16ms 约 60fps
 
   /**
    * 设置 Graph 实例
@@ -36,8 +41,6 @@ export class DataBindingService {
    */
   private initDataBinding(): void {
     if (this.dataCallbackRegistered) return
-    
-    console.log('[DataBindingService] 初始化数据绑定监听')
     
     // 监听数据源数据更新
     dataSourceManager.onData((dataSourceId: string, rawData: any) => {
@@ -62,6 +65,9 @@ export class DataBindingService {
     nodes.forEach(node => {
       this.updateNodeData(node, dataSourceId, rawData)
     })
+    
+    // 在所有节点处理完后，调度批量刷新
+    this.scheduleFlush()
   }
 
   /**
@@ -112,13 +118,61 @@ export class DataBindingService {
       }
     })
     
-    // 如果有更新，应用到节点
+    // 如果有更新，添加到队列
     if (hasUpdates) {
-      this.applyUpdatesToNode(node, updates)
+      this.queueUpdates(node.id, updates)
       return true
     }
     
     return false
+  }
+  
+  /**
+   * 将更新添加到队列
+   */
+  private queueUpdates(nodeId: string, updates: Record<string, any>): void {
+    const existingUpdates = this.updateQueue.get(nodeId) || {}
+    this.updateQueue.set(nodeId, { ...existingUpdates, ...updates })
+  }
+  
+  /**
+   * 调度批量刷新
+   */
+  private scheduleFlush(): void {
+    if (this.flushTimer) return
+    
+    this.flushTimer = window.setTimeout(() => {
+      this.flush()
+      this.flushTimer = null
+    }, this.FLUSH_DELAY)
+  }
+  
+  /**
+   * 执行批量更新
+   */
+  private flush(): void {
+    if (this.updateQueue.size === 0) return
+    
+    // 在 requestAnimationFrame 中执行更新，确保与浏览器渲染同步
+    requestAnimationFrame(() => {
+      const startTime = performance.now()
+      
+      this.updateQueue.forEach((updates, nodeId) => {
+        if (!this.graph) return
+        
+        const node = this.graph.getCellById(nodeId) as Node
+        if (node && node.isNode()) {
+          this.applyUpdatesToNode(node, updates)
+        }
+      })
+      
+      const duration = performance.now() - startTime
+      if (duration > 16) {
+        console.warn(`[DataBindingService] 批量更新耗时 ${duration.toFixed(2)}ms, 超过一帧时间`)
+      }
+      
+      this.updateQueue.clear()
+    })
   }
 
   /**
@@ -293,6 +347,13 @@ export class DataBindingService {
    * 清理资源
    */
   destroy(): void {
+    // 清理待处理的刷新任务
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer)
+      this.flushTimer = null
+    }
+    
+    this.updateQueue.clear()
     this.graph = null
     this.dataCallbackRegistered = false
     console.log('[DataBindingService] 服务已销毁')

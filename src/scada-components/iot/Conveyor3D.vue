@@ -155,13 +155,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { animationScheduler } from '../../utils/animationScheduler'
 
 interface Props {
   node?: any
 }
 
 const props = defineProps<Props>()
-const nodeId = ref(`conveyor-${Math.random().toString(36).substr(2, 9)}`)
+const nodeId = computed(() => props.node?.id || `conveyor-${Math.random().toString(36).substr(2, 9)}`)
 
 const getData = () => {
   if (!props.node) return {}
@@ -177,12 +178,12 @@ const rollerRotation = ref(0)
 const beltOffset = ref(0)
 const cargoX = ref(30)
 
-let animationId: number | null = null
-
-const animate = () => {
+const animate = (deltaTime: number) => {
   if (isRunning.value) {
-    const rotationSpeed = speed.value / 10
-    const moveSpeed = speed.value / 5
+    // 根据时间步进调整动画速度
+    const factor = deltaTime / 16.67 // 基于 60fps 标准帧
+    const rotationSpeed = (speed.value / 10) * factor
+    const moveSpeed = (speed.value / 5) * factor
     
     if (direction.value === 'forward') {
       rollerRotation.value = (rollerRotation.value + rotationSpeed) % 360
@@ -196,13 +197,17 @@ const animate = () => {
       if (cargoX.value < 20) cargoX.value = 180
     }
   }
-  
-  animationId = requestAnimationFrame(animate)
 }
 
 const updateConveyor = () => {
   const data = getData()
-  isRunning.value = data.state === 'running' || data.state === true
+  const newRunning = data.state === 'running' || data.state === true
+  
+  if (newRunning !== isRunning.value) {
+    animationScheduler.setEnabled(nodeId.value, newRunning)
+  }
+  
+  isRunning.value = newRunning
   speed.value = data.speed || 10
   direction.value = data.direction || 'forward'
 }
@@ -213,7 +218,9 @@ watch(() => props.node, () => {
 
 onMounted(() => {
   updateConveyor()
-  animate()
+  
+  animationScheduler.register(nodeId.value, animate)
+  animationScheduler.setEnabled(nodeId.value, isRunning.value)
   
   if (props.node && typeof props.node.on === 'function') {
     props.node.on('change:data', () => {
@@ -223,9 +230,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (animationId) {
-    cancelAnimationFrame(animationId)
-  }
+  animationScheduler.unregister(nodeId.value)
 })
 </script>
 

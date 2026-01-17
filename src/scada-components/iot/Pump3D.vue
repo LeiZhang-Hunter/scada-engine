@@ -155,14 +155,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { animationScheduler } from '../../utils/animationScheduler'
 
 interface Props {
   node?: any
 }
 
 const props = defineProps<Props>()
-const nodeId = ref(`pump-${Math.random().toString(36).substr(2, 9)}`)
+const nodeId = computed(() => props.node?.id || `pump-${Math.random().toString(36).substr(2, 9)}`)
 
 const getData = () => {
   if (!props.node) return {}
@@ -176,20 +177,27 @@ const power = ref(5.5)
 const flowRate = ref(0)
 const pressure = ref(0)
 const rotation = ref(0)
-let animationId: number | null = null
 
-const animate = () => {
+// 动画回调函数
+const animate = (deltaTime: number) => {
   if (isRunning.value) {
-    // 根据转速动态调整旋转速度，转速越高旋转越快
-    const rotationSpeed = (speed.value / 360) // 2900rpm -> 8度/帧
+    // 根据转速和时间步进调整旋转角度
+    // deltaTime 是毫秒,转换为秒后乘以转速(rpm)再转换为角度
+    const rotationSpeed = (speed.value / 60) * (deltaTime / 1000) * 360 // rpm -> 度/秒
     rotation.value = (rotation.value + rotationSpeed) % 360
   }
-  animationId = requestAnimationFrame(animate)
 }
 
 const updatePump = () => {
   const data = getData()
-  isRunning.value = data.state === 'running' || data.state === true
+  const newRunning = data.state === 'running' || data.state === true
+  
+  // 状态变化时,启用/禁用动画
+  if (newRunning !== isRunning.value) {
+    animationScheduler.setEnabled(nodeId.value, newRunning)
+  }
+  
+  isRunning.value = newRunning
   speed.value = data.speed || 2900
   power.value = data.power || 5.5
   flowRate.value = isRunning.value ? (data.flowRate || 15) : 0
@@ -203,33 +211,20 @@ watch(() => props.node, () => {
 onMounted(() => {
   updatePump()
   
-  // 只在运行状态下启动动画
-  if (isRunning.value) {
-    animate()
-  }
+  // 注册到统一调度器
+  animationScheduler.register(nodeId.value, animate)
+  animationScheduler.setEnabled(nodeId.value, isRunning.value)
   
   if (props.node && typeof props.node.on === 'function') {
     props.node.on('change:data', () => {
-      const wasRunning = isRunning.value
       updatePump()
-      
-      // 状态变化时控制动画
-      if (isRunning.value && !wasRunning) {
-        animate()
-      } else if (!isRunning.value && wasRunning) {
-        if (animationId) {
-          cancelAnimationFrame(animationId)
-          animationId = null
-        }
-      }
     })
   }
 })
 
 onUnmounted(() => {
-  if (animationId) {
-    cancelAnimationFrame(animationId)
-  }
+  // 从调度器注销
+  animationScheduler.unregister(nodeId.value)
 })
 </script>
 

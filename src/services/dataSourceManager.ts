@@ -142,8 +142,6 @@ export class DataSourceManager {
       // 先断开已有连接
       this.disconnectDataSource(id)
 
-      console.log(`[DataSourceManager] 开始连接数据源: ${dataSource.name} (${dataSource.type})`)
-
       // 根据类型创建连接
       switch (dataSource.type) {
         case 'MQTT':

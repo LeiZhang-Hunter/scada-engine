@@ -206,13 +206,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { animationScheduler } from '../../utils/animationScheduler'
 
 interface Props {
   node?: any
 }
 
 const props = defineProps<Props>()
-const nodeId = ref(`tee-${Math.random().toString(36).substr(2, 9)}`)
+const nodeId = computed(() => props.node?.id || `tee-${Math.random().toString(36).substr(2, 9)}`)
 
 const getData = () => {
   if (!props.node) return {}
@@ -230,22 +231,25 @@ const rightFlowOffset = ref(0)
 const topFlowOffset = ref(0)
 const bottomFlowOffset = ref(0)
 
-let animationId: number | null = null
-
-const animate = () => {
+const animate = (deltaTime: number) => {
   if (isFlowing.value) {
-    leftFlowOffset.value = (leftFlowOffset.value + 1) % 40
-    rightFlowOffset.value = (rightFlowOffset.value + 1) % 20
-    topFlowOffset.value = (topFlowOffset.value + 1) % 20
-    bottomFlowOffset.value = (bottomFlowOffset.value + 1) % 20
+    const factor = deltaTime / 16.67
+    leftFlowOffset.value = (leftFlowOffset.value + 1 * factor) % 40
+    rightFlowOffset.value = (rightFlowOffset.value + 1 * factor) % 20
+    topFlowOffset.value = (topFlowOffset.value + 1 * factor) % 20
+    bottomFlowOffset.value = (bottomFlowOffset.value + 1 * factor) % 20
   }
-  
-  animationId = requestAnimationFrame(animate)
 }
 
 const updateTee = () => {
   const data = getData()
-  isFlowing.value = data.state === 'flowing' || data.state === true
+  const newFlowing = data.state === 'flowing' || data.state === true
+  
+  if (newFlowing !== isFlowing.value) {
+    animationScheduler.setEnabled(nodeId.value, newFlowing)
+  }
+  
+  isFlowing.value = newFlowing
   fluidColor.value = data.fluidColor || '#3b82f6'
   topFlowEnabled.value = data.topFlowEnabled !== false
   bottomFlowEnabled.value = data.bottomFlowEnabled !== false
@@ -257,7 +261,9 @@ watch(() => props.node, () => {
 
 onMounted(() => {
   updateTee()
-  animate()
+  
+  animationScheduler.register(nodeId.value, animate)
+  animationScheduler.setEnabled(nodeId.value, isFlowing.value)
   
   if (props.node && typeof props.node.on === 'function') {
     props.node.on('change:data', () => {
@@ -267,9 +273,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (animationId) {
-    cancelAnimationFrame(animationId)
-  }
+  animationScheduler.unregister(nodeId.value)
 })
 </script>
 

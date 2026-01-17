@@ -92,7 +92,6 @@ export class MqttService {
 
       // 处理浏览器环境下的 MQTT 地址
       let brokerUrl = config.broker
-      console.log('[MQTT] 原始 broker 地址:', brokerUrl)
       
       // 如果是 mqtt:// 协议，在浏览器中需要转换为 ws:// 或 wss://
       if (brokerUrl.startsWith('mqtt://')) {
@@ -105,7 +104,6 @@ export class MqttService {
           // 其他服务器，尝试使用默认 WebSocket 端口
           brokerUrl = `ws://${host}:8083/mqtt`
         }
-        console.log('[MQTT] 协议转换: mqtt:// → WebSocket，目标地址:', brokerUrl)
       } else if (brokerUrl.startsWith('mqtts://')) {
         const host = brokerUrl.replace('mqtts://', '')
         if (host.includes('broker.emqx.io')) {
@@ -113,13 +111,9 @@ export class MqttService {
         } else {
           brokerUrl = `wss://${host}:8084/mqtt`
         }
-        console.log('[MQTT] 协议转换: mqtts:// → WebSocket Secure，目标地址:', brokerUrl)
       } else if (!brokerUrl.startsWith('ws://') && !brokerUrl.startsWith('wss://')) {
         // 如果没有协议前缀，默认使用 ws://
         brokerUrl = `ws://${brokerUrl}:8083/mqtt`
-        console.log('[MQTT] 添加默认协议和端口，目标地址:', brokerUrl)
-      } else {
-        console.log('[MQTT] 使用原始 WebSocket 地址:', brokerUrl)
       }
 
       // 连接选项
@@ -135,23 +129,11 @@ export class MqttService {
       // EMQX 公共服务器支持匿名访问，不需要认证
       if (config.username && config.username.trim()) {
         options.username = config.username
-        console.log('[MQTT] 使用认证，用户名:', config.username)
-      } else {
-        console.log('[MQTT] 使用匿名连接')
       }
       
       if (config.password && config.password.trim()) {
         options.password = config.password
-        console.log('[MQTT] 密码已设置')
       }
-
-      console.log('[MQTT] 完整连接配置:', {
-        brokerUrl,
-        clientId: options.clientId,
-        username: options.username || '无',
-        hasPassword: !!(options.password),
-        topic: config.topic
-      })
 
       try {
         // 创建 MQTT 客户端

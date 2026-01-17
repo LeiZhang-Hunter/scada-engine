@@ -329,7 +329,7 @@ const updateContainerTransform = () => {
 	}
 }
 
-onMounted(() => {
+onMounted(async () => {
 	if (!canvasAreaRef.value?.containerRef) return
 
 	// 获取画布配置
@@ -425,11 +425,6 @@ onMounted(() => {
 	
 	// 计算初始缩放比例（稍后应用）
 	const initialScale = calculateFitScale()
-	console.log('🎬 [Canvas Init] 初始化画布', {
-		initialScale,
-		canvasSize: { width: canvasWidth, height: canvasHeight },
-		containerElement: canvasAreaRef.value?.containerRef
-	})
 	// 不立即应用缩放，等待 graph 创建后
 	// updateContainerTransform(initialScale)
 	
@@ -512,8 +507,6 @@ onMounted(() => {
 
 	// 使用插件:选择插件（仅编辑模式）
 	if (!props.previewMode) {
-		console.log('🎯 [Selection Plugin] 初始化框选插件')
-		
 		graph.use(
 			new Selection({
 				enabled: true,
@@ -525,45 +518,6 @@ onMounted(() => {
 				pointerEvents: 'none' // 不阻止鼠标事件
 			})
 		)
-		
-		// 监听框选事件
-		graph.on('selection:changed', ({ selected }) => {
-			console.log('✅ [Selection] 选中变化:', selected.length, '个元素')
-		})
-		
-		// 添加鼠标事件监听（调试用）
-		let isRubberbanding = false
-		graph.on('blank:mousedown', (args) => {
-			isRubberbanding = true
-			const { e, x, y } = args
-			console.log('🖱️ [Rubberband Start]', {
-				clientX: e.clientX,
-				clientY: e.clientY,
-				graphX: x,
-				graphY: y,
-				containerTransform: container.style.transform,
-				containerRect: container.getBoundingClientRect()
-			})
-		})
-		
-		graph.on('blank:mousemove', (args) => {
-			if (isRubberbanding) {
-				const { e, x, y } = args
-				console.log('🖱️ [Rubberband Move]', {
-					clientX: e.clientX,
-					clientY: e.clientY,
-					graphX: x,
-					graphY: y
-				})
-			}
-		})
-		
-		graph.on('blank:mouseup', () => {
-			if (isRubberbanding) {
-				isRubberbanding = false
-				console.log('🖱️ [Rubberband End]')
-			}
-		})
 	}
 
 	// 使用插件：对齐参考线
@@ -597,6 +551,10 @@ onMounted(() => {
 	canvasConfigWatcher.initialize(graph, canvasAreaRef, calculateFitScale, () => {
 		updateContainerTransform()
 	})
+
+	// ========== 预加载懒加载组件 ==========
+	// 在恢复画布数据之前，必须预加载所有组件，确保 Vue Shape 已注册
+	await componentRegistry.preloadAllComponents()
 
 	// 尝试恢复之前保存的画布数据（仅编辑模式）
 	if (!props.previewMode) {
@@ -731,8 +689,8 @@ watch([leftPanelCollapsed, rightPanelCollapsed], () => {
 })
 
 // 添加节点（根据类型）
-const handleAddNode = (type: string) => {
-	const node = nodeOperations.addNode(type)
+const handleAddNode = async (type: string) => {
+	const node = await nodeOperations.addNode(type)
 	if (node && graph) {
 		// 先取消所有选中，再选中新添加的节点
 		graph.cleanSelection()

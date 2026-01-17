@@ -135,12 +135,6 @@ const handlePointSelect = (pointId: string, point: ComponentPoint) => {
 		writable: false
 	})
 	emit('update-field', 'devicePointId', event)
-	
-	console.log('选择了组件点位:', {
-		pointId,
-		pointName: point.name,
-		dataType: point.dataType
-	})
 }
 
 // 处理映射配置更新

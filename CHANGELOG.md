@@ -1,5 +1,19 @@
 # 版本更新历史
 
+## [1.1.29] - 2025-01-17
+
+### 🐛 修复
+- 修复 `canvasElementService.ts` 中 `getComponent` 异步方法的 Promise 类型错误
+- 将 `getElements`、`getElementById`、`searchElements` 方法改为异步方法
+- 更新 `GetPropertyConfig.vue` 和 `SetPropertyConfig.vue` 中的调用方法，添加 await 关键字
+
+### 🔨 重构
+- 创建独立的类型文件 `element.ts`，解决从 Vue 文件导出类型的 TypeScript 限制
+- 将 `ElementInfo` 接口从 `ElementSelector.vue` 迁移到 `types/element.ts`
+- 统一所有工作流图元相关组件的类型导入方式
+
+---
+
 ## [1.1.28] - 2025-01-16
 
 ### 🐛 修复

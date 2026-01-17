@@ -46,7 +46,8 @@
 <script setup lang="ts">
 import { reactive, ref, computed, inject, onMounted } from 'vue'
 import type { SetPropertyNodeConfig } from '../../types/node'
-import ElementSelector, { type ElementInfo } from '../ElementSelector.vue'
+import ElementSelector from '../ElementSelector.vue'
+import type { ElementInfo } from '../../types/element'
 import type { canvasElementService as CanvasElementServiceType } from '../../services/canvasElementService'
 
 interface Props {
@@ -82,9 +83,9 @@ const handleUpdate = () => {
 	emit('update:modelValue', { ...config })
 }
 
-const selectElementFromCanvas = () => {
+const selectElementFromCanvas = async () => {
 	if (canvasElementService) {
-		canvasElements.value = canvasElementService.getElements()
+		canvasElements.value = await canvasElementService.getElements()
 	}
 	showSelector.value = true
 }
@@ -96,9 +97,9 @@ const handleElementSelected = (element: ElementInfo) => {
 	handleUpdate()
 }
 
-onMounted(() => {
+onMounted(async () => {
 	if (canvasElementService) {
-		canvasElements.value = canvasElementService.getElements()
+		canvasElements.value = await canvasElementService.getElements()
 	}
 	
 	if (config.elementId) {

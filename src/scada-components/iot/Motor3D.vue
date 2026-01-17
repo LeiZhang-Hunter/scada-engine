@@ -109,13 +109,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { animationScheduler } from '../../utils/animationScheduler'
 
 interface Props {
   node?: any
 }
 
 const props = defineProps<Props>()
-const nodeId = ref(`motor-${Math.random().toString(36).substr(2, 9)}`)
+const nodeId = computed(() => props.node?.id || `motor-${Math.random().toString(36).substr(2, 9)}`)
 
 const getData = () => {
   if (!props.node) return {}
@@ -127,21 +128,24 @@ const isRunning = ref(false)
 const speed = ref(1500)
 const power = ref(7.5)
 const rotation = ref(0)
-let animationId: number | null = null
 
 // 旋转动画
-const animate = () => {
+const animate = (deltaTime: number) => {
   if (isRunning.value) {
-    // 根据转速动态调整旋转速度，转速越高旋转越快
-    const rotationSpeed = (speed.value / 300) // 1500rpm -> 5度/帧
+    const rotationSpeed = (speed.value / 60) * (deltaTime / 1000) * 360
     rotation.value = (rotation.value + rotationSpeed) % 360
   }
-  animationId = requestAnimationFrame(animate)
 }
 
 const updateMotor = () => {
   const data = getData()
-  isRunning.value = data.state === 'running' || data.state === true
+  const newRunning = data.state === 'running' || data.state === true
+  
+  if (newRunning !== isRunning.value) {
+    animationScheduler.setEnabled(nodeId.value, newRunning)
+  }
+  
+  isRunning.value = newRunning
   speed.value = data.speed || 1500
   power.value = data.power || 7.5
 }
@@ -153,33 +157,18 @@ watch(() => props.node, () => {
 onMounted(() => {
   updateMotor()
   
-  // 只在运行状态下启动动画
-  if (isRunning.value) {
-    animate()
-  }
+  animationScheduler.register(nodeId.value, animate)
+  animationScheduler.setEnabled(nodeId.value, isRunning.value)
   
   if (props.node && typeof props.node.on === 'function') {
     props.node.on('change:data', () => {
-      const wasRunning = isRunning.value
       updateMotor()
-      
-      // 状态变化时控制动画
-      if (isRunning.value && !wasRunning) {
-        animate()
-      } else if (!isRunning.value && wasRunning) {
-        if (animationId) {
-          cancelAnimationFrame(animationId)
-          animationId = null
-        }
-      }
     })
   }
 })
 
 onUnmounted(() => {
-  if (animationId) {
-    cancelAnimationFrame(animationId)
-  }
+  animationScheduler.unregister(nodeId.value)
 })
 </script>
 

@@ -44,3 +44,15 @@ export * from './contextMenuManager'
 
 // 画布配置监听器
 export * from './canvasConfigWatcher'
+
+// 动画调度器
+export * from './animationScheduler'
+
+// 视口裁剪服务
+export * from './viewportCulling'
+
+// Worker 管理器
+export * from './workerManager'
+
+// Canvas 分层管理器
+export * from './canvasLayerManager'
