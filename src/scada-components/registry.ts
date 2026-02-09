@@ -50,17 +50,20 @@ class ComponentRegistryManager {
     this.register(IoTComponents.SwitchComponent)
     this.register(IoTComponents.EChartsGaugeComponent)
     this.register(IoTComponents.EChartsLineComponent)
+    
+    // Three.js 3D组件(懒加载)
+    this.register(IoTComponents.Tank3DThreeComponent)
   }
   
   /**
    * 注册懒加载组件（零配置 - 基于约定自动发现）
-   * 约定：所有 ./iot/industrial-*.ts 文件自动注册为懒加载组件
+   * 约定：所有 iot/industrial-* 目录下的 index.ts 文件自动注册为懒加载组件
    * 策略：延迟加载 - 首次请求组件时才加载整个模块，并注册模块内的所有组件
    */
   private registerLazyComponents() {
     // 使用 Vite 的 import.meta.glob 扫描所有符合约定的模块文件
     // eager: false 表示返回 import 函数，不立即加载
-    const lazyModuleLoaders = import.meta.glob('./iot/industrial-*.ts', { eager: false })
+    const lazyModuleLoaders = import.meta.glob('./iot/industrial-*/index.ts', { eager: false })
     
     // 为每个模块创建一个延迟加载的标记
     Object.entries(lazyModuleLoaders).forEach(([modulePath, importFn]) => {

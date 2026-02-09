@@ -41,10 +41,12 @@
     "lucide-vue-next": "^0.563.0",
     "mqtt": "^5.14.1",
     "pinia": "^2.1.0",
+    "three": "^0.160.1",
     "vue": "^3.4.0"
   },
   "devDependencies": {
     "@types/node": "^25.0.3",
+    "@types/three": "^0.182.0",
     "@vitejs/plugin-vue": "^5.0.0",
     "less": "^4.2.0",
     "postcss-prefix-selector": "^2.1.1",
