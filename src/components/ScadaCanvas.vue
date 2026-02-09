@@ -859,22 +859,43 @@ const handleSave = async () => {
 	}
 	
 	try {
+		// 获取画布数据
+		const canvasData = {
+			version: '1.0.0',
+			timestamp: formatTimestamp(getCurrentTimestamp()),
+			config: canvasConfigManager.getConfig(),
+			cells: graph.toJSON().cells,
+			nodes: graph.getNodes().map(node => ({
+				id: node.id,
+				type: node.shape,
+				position: node.getPosition(),
+				size: node.getSize(),
+				label: node.attr('label/text'),
+				data: node.getData()
+			})),
+			edges: graph.getEdges().map(edge => ({
+				id: edge.id,
+				source: edge.getSourceCellId(),
+				target: edge.getTargetCellId()
+			}))
+		}
+		
+		// 保存到 localStorage（用于预览和恢复）
+		localStorage.setItem('scada-canvas-data', JSON.stringify(canvasData))
+		
 		// 如果有自定义保存回调，优先使用
 		if (props.onSave) {
 			const result = props.onSave()
 			if (result instanceof Promise) {
 				await result
 			}
+			showMessage('保存成功', 'success')
 			return
 		}
 		
-		// 默认下载 JSON 文件（使用 canvasDataHandler）
-		const filename = canvasDataHandler.exportToFile(`scada-canvas-${new Date().getTime()}.json`)
-		if (filename) {
-			showMessage('保存成功', 'success')
-		} else {
-			showMessage('保存失败', 'error')
-		}
+		// 默认只保存到 localStorage，不下载文件
+		// 如需下载文件，请使用"导出"功能
+		showMessage('保存成功', 'success')
 	} catch (error) {
 		console.error('保存失败', error)
 		showMessage('保存失败，请查看控制台', 'error')
@@ -940,9 +961,38 @@ const handlePreview = () => {
 		return
 	}
 	
-	// 触发预览事件，由父组件处理
-	// 父组件可以通过 getCanvasData() 获取画布数据
-	emit('preview')
+	try {
+		// 先保存画布数据到 localStorage
+		const canvasData = {
+			version: '1.0.0',
+			timestamp: formatTimestamp(getCurrentTimestamp()),
+			config: canvasConfigManager.getConfig(),
+			cells: graph.toJSON().cells,
+			nodes: graph.getNodes().map(node => ({
+				id: node.id,
+				type: node.shape,
+				position: node.getPosition(),
+				size: node.getSize(),
+				label: node.attr('label/text'),
+				data: node.getData()
+			})),
+			edges: graph.getEdges().map(edge => ({
+				id: edge.id,
+				source: edge.getSourceCellId(),
+				target: edge.getTargetCellId()
+			}))
+		}
+		
+		// 保存到 localStorage（用于预览）
+		localStorage.setItem('scada-canvas-data', JSON.stringify(canvasData))
+		
+		// 触发预览事件，由父组件处理
+		// 父组件可以通过 getCanvasData() 获取画布数据
+		emit('preview')
+	} catch (error) {
+		console.error('保存预览数据失败:', error)
+		showMessage('预览失败，请查看控制台', 'error')
+	}
 }
 
 const handleWorkflow = () => {

@@ -34,7 +34,9 @@
 		
 		<!-- 操作列 -->
 		<div class="binding-col-actions">
-			<button class="btn-delete" @click="$emit('remove')" title="删除">🗑</button>
+			<button class="btn-delete" @click="$emit('remove')" title="删除">
+				<Trash2 class="icon-svg" />
+			</button>
 		</div>
 		
 		<!-- 组件点位选择弹窗 -->
@@ -56,6 +58,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { Trash2 } from 'lucide-vue-next'
 import ComponentPointSelector from './ComponentPointSelector.vue'
 import MappingConfigurator from './MappingConfigurator.vue'
 import type { ComponentPoint } from '../scada-components/types'

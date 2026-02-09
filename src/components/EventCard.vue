@@ -9,7 +9,9 @@
 				class="btn-remove" 
 				@click.stop="$emit('remove')" 
 				title="删除事件"
-			>🗑</button>
+			>
+				<Trash2 class="icon-svg" />
+			</button>
 		</div>
 
 		<!-- 事件配置内容 -->
@@ -131,6 +133,8 @@
 </template>
 
 <script setup lang="ts">
+import { Trash2 } from 'lucide-vue-next'
+
 interface EventConfig {
 	name?: string
 	type: string
@@ -236,12 +240,15 @@ defineEmits<{
 	border-radius: 4px;
 	color: #94a3b8;
 	cursor: pointer;
-	font-size: 18px;
-	line-height: 1;
 	transition: all 0.2s;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+}
+
+.btn-remove .icon-svg {
+	width: 14px;
+	height: 14px;
 }
 
 .btn-remove:hover {

@@ -12,51 +12,51 @@
 		<div class="header-center">
 			<div class="tool-group">
 				<button class="toolbar-btn" @click="emit('zoomIn')" title="放大">
-					<span class="icon">+</span>
+					<ZoomIn class="icon-svg" />
 				</button>
 				<button class="toolbar-btn" @click="emit('zoomOut')" title="缩小">
-					<span class="icon">-</span>
+					<ZoomOut class="icon-svg" />
 				</button>
 				<button class="toolbar-btn" @click="emit('clearAll')" title="清空画布">
-					<span class="icon">🗑</span>
+					<Trash2 class="icon-svg" />
 				</button>
 			</div>
-					
+						
 			<!-- 分隔线 -->
 			<div v-if="props.selectedNodesCount >= 2" class="divider"></div>
 					
 			<!-- 对齐工具 -->
 			<div v-if="props.selectedNodesCount >= 2" class="tool-group">
 				<button class="toolbar-btn" @click="emit('alignLeft')" title="左对齐">
-					<AlignHorizontalLeft class="icon-svg" />
+					<AlignStartHorizontal class="icon-svg" />
 				</button>
 				<button class="toolbar-btn" @click="emit('alignCenter')" title="水平居中">
-					<AlignHorizontalCenter class="icon-svg" />
+					<AlignHorizontalJustifyCenter class="icon-svg" />
 				</button>
 				<button class="toolbar-btn" @click="emit('alignRight')" title="右对齐">
-					<AlignHorizontalRight class="icon-svg" />
+					<AlignEndHorizontal class="icon-svg" />
 				</button>
 				<button class="toolbar-btn" @click="emit('alignTop')" title="顶部对齐">
-					<AlignVerticalTop class="icon-svg" />
+					<AlignStartVertical class="icon-svg" />
 				</button>
 				<button class="toolbar-btn" @click="emit('alignMiddle')" title="垂直居中">
-					<AlignVerticalCenter class="icon-svg" />
+					<AlignCenterVertical class="icon-svg" />
 				</button>
 				<button class="toolbar-btn" @click="emit('alignBottom')" title="底部对齐">
-					<AlignVerticalBottom class="icon-svg" />
+					<AlignEndVertical class="icon-svg" />
 				</button>
 			</div>
-					
+							
 			<!-- 分隔线 -->
 			<div v-if="props.selectedNodesCount >= 3" class="divider"></div>
-					
+							
 			<!-- 分布工具 -->
 			<div v-if="props.selectedNodesCount >= 3" class="tool-group">
 				<button class="toolbar-btn" @click="emit('distributeHorizontal')" title="横向分布">
-					<DistributeHorizontalCenter class="icon-svg" />
+					<AlignHorizontalSpaceAround class="icon-svg" />
 				</button>
 				<button class="toolbar-btn" @click="emit('distributeVertical')" title="纵向分布">
-					<DistributeVerticalCenter class="icon-svg" />
+					<AlignVerticalSpaceAround class="icon-svg" />
 				</button>
 			</div>
 		</div>
@@ -65,47 +65,56 @@
 		<div class="header-right">
 			<div class="tool-group">
 				<button class="header-btn" @click="emit('dataSource')" title="数据源管理">
-					<span class="icon">📡</span>
+					<Database class="icon-svg" />
 					<span>数据源</span>
 				</button>
 				<button class="header-btn" @click="emit('workflow')" title="流程编排">
-					<span class="icon">⚡</span>
+					<Workflow class="icon-svg" />
 					<span>流程编排</span>
 				</button>
 				<button class="header-btn" @click="emit('import')" title="导入">
-					<span class="icon">📂</span>
+					<FolderOpen class="icon-svg" />
 					<span>导入</span>
 				</button>
 				<button class="header-btn" @click="emit('export')" title="导出">
-					<span class="icon">📤</span>
+					<Download class="icon-svg" />
 					<span>导出</span>
 				</button>
 				<button class="header-btn" @click="emit('preview')" title="预览">
-					<span class="icon">👁</span>
+					<Eye class="icon-svg" />
 					<span>预览</span>
 				</button>
 				<button class="header-btn" @click="emit('save')" title="保存">
-					<span class="icon">💾</span>
+					<Save class="icon-svg" />
 					<span>保存</span>
 				</button>
-				
+					
 			</div>
 		</div>
 	</header>
 </template>
 
 <script setup lang="ts">
-import {
-	AlignHorizontalLeft,
-	AlignHorizontalCenter,
-	AlignHorizontalRight,
-	AlignVerticalTop,
-	AlignVerticalCenter,
-	AlignVerticalBottom,
-	DistributeHorizontalCenter,
-	DistributeVerticalCenter
-} from '@vicons/carbon'
 import packageInfo from '../../package.json'
+import {
+	AlignStartHorizontal,
+	AlignHorizontalJustifyCenter,
+	AlignEndHorizontal,
+	AlignStartVertical,
+	AlignCenterVertical,
+	AlignEndVertical,
+	AlignHorizontalSpaceAround,
+	AlignVerticalSpaceAround,
+	Trash2,
+	Database,
+	Workflow,
+	FolderOpen,
+	Download,
+	Eye,
+	Save,
+	ZoomIn,
+	ZoomOut
+} from 'lucide-vue-next'
 
 // 从 package.json 获取版本号
 const version = packageInfo.version
@@ -212,8 +221,10 @@ const emit = defineEmits<{
 	transform: translateY(-1px);
 }
 
-.header-btn .icon {
-	font-size: 16px;
+.header-btn .icon-svg {
+	width: 16px;
+	height: 16px;
+	display: block;
 }
 
 .tip {
@@ -246,10 +257,6 @@ const emit = defineEmits<{
 .toolbar-btn:hover {
 	background: #1e3a5f;
 	border-color: #3b82f6;
-}
-
-.toolbar-btn .icon {
-	font-size: 16px;
 }
 
 .toolbar-btn .icon-svg {

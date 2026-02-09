@@ -33,7 +33,7 @@
 								@click.stop="previewWorkflow(workflow)"
 								title="预览"
 							>
-								👁️
+								<Eye class="icon-svg" />
 							</button>
 						</div>
 					</div>
@@ -56,6 +56,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { Eye } from 'lucide-vue-next'
 
 interface Workflow {
 	id: string

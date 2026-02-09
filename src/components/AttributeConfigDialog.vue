@@ -69,7 +69,7 @@
 						
 						<!-- 删除按钮 -->
 						<button class="btn-delete-group" @click="$emit('remove-group', index)" title="删除">
-							🗑
+							<Trash2 class="icon-svg" />
 						</button>
 					</div>
 				</div>
@@ -88,6 +88,8 @@
 </template>
 
 <script setup lang="ts">
+import { Trash2 } from 'lucide-vue-next'
+
 interface AttributeGroup {
 	target: string
 	property: string
