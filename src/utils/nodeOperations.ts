@@ -132,7 +132,7 @@ export class NodeOperations {
       const cleanedData = { ...updates.data }
       delete cleanedData.position
       delete cleanedData.size
-      node.setData(cleanedData)
+      node.prop('data', cleanedData)
     }
   }
 
