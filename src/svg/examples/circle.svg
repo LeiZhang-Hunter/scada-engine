@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80">
+  <metadata>
+    <scada-config><![CDATA[
+    {
+      "component": {
+        "id": "circle",
+        "name": "\u5706\u5f62",
+        "category": "basic",
+        "icon": "\u25CB",
+        "description": "\u57fa\u7840\u5706\u5f62\u56fe\u5f62\u7ec4\u4ef6",
+        "version": "1.0.0",
+        "author": "SCADA Engine"
+      },
+      "size": {
+        "width": 80,
+        "height": 80
+      },
+      "presetBindings": [
+        {
+          "partId": "part-label",
+          "suggestedDriverProperty": "text",
+          "label": "\u663e\u793a\u6587\u672c",
+          "valueType": "string",
+          "suggestedTemplate": "value-text",
+          "suggestedParams": {
+            "type": "value-text",
+            "defaultText": "\u5706\u5f62"
+          }
+        },
+        {
+          "partId": "part-body",
+          "suggestedDriverProperty": "fill",
+          "label": "\u586b\u5145\u8272",
+          "valueType": "color",
+          "suggestedTemplate": "status-color",
+          "suggestedParams": {
+            "type": "status-color",
+            "colorMap": {},
+            "defaultColor": "#10b981",
+            "applyTo": "fill"
+          }
+        }
+      ],
+      "ports": [
+        { "id": "port-top", "group": "top" },
+        { "id": "port-right", "group": "right" },
+        { "id": "port-bottom", "group": "bottom" },
+        { "id": "port-left", "group": "left" }
+      ]
+    }
+    ]]></scada-config>
+  </metadata>
+  <defs>
+    <radialGradient id="circle-gradient" cx="30%" cy="30%">
+      <stop offset="0%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#10b981" />
+    </radialGradient>
+  </defs>
+  <g id="root">
+    <circle
+      id="part-body"
+      cx="40"
+      cy="40"
+      r="35"
+      fill="url(#circle-gradient)"
+      stroke="#059669"
+      stroke-width="2"
+    />
+    <text
+      id="part-label"
+      x="40"
+      y="40"
+      text-anchor="middle"
+      dominant-baseline="middle"
+      font-size="14"
+      fill="#ffffff"
+      font-family="system-ui, sans-serif"
+    >\u5706\u5f62</text>
+  </g>
+</svg>

@@ -133,7 +133,8 @@
 	filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6)) !important;
 }
 
-.scada-layout .x6-edge-selected path {
+/* 边选中效果：仅用于普通边，不修改管道边（pipeline-edge）的宽度 */
+.scada-layout .x6-edge-selected:not([data-shape="pipeline-edge"]) path:not([data-selector="shadow"]):not([data-selector="line"]):not([data-selector="highlight"]):not([data-selector="wrap"]) {
 	stroke: #3b82f6 !important;
 	stroke-width: 3 !important;
 }

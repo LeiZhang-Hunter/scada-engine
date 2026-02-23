@@ -50,9 +50,13 @@ export class EdgeOperations {
     // 使用光点流动动画
     const duration = animation.duration || 2000 // 默认2秒
     
+    // 获取line层的strokeWidth，作为小球的半径
+    const lineWidth = Number(edge.attr('line/strokeWidth')) || 4
+    const circleRadius = lineWidth * 0.5 // 小球半径 = line宽度的一半
+    
     // 设置光点样式
     edge.attr('circle', {
-      r: 4,
+      r: circleRadius,
       atConnectionRatio: 0,
       fill: {
         type: 'radialGradient',
@@ -87,28 +91,86 @@ export class EdgeOperations {
   updateEdge(edge: Edge, updates: any): void {
     if (!edge) return
     
+    // 如果需要更改 shape，需要删除旧边并创建新边
+    if (updates.shape && updates.shape !== edge.shape) {
+      if (!this.graph) return
+      
+      // 保存当前边的信息
+      const source = edge.getSourceCell()
+      const target = edge.getTargetCell()
+      const sourcePortId = edge.getSourcePortId()
+      const targetPortId = edge.getTargetPortId()
+      const edgeData = edge.getData()
+      const router = edge.getRouter()
+      const connector = edge.getConnector()
+      
+      if (!source || !target) return
+      
+      // 删除旧边
+      this.graph.removeEdge(edge.id)
+      
+      // 创建新边
+      const newEdge = this.graph.addEdge({
+        shape: updates.shape,
+        source: { cell: source.id, port: sourcePortId },
+        target: { cell: target.id, port: targetPortId },
+        attrs: updates.attrs || {},
+        data: updates.data || edgeData,
+        router: router,
+        connector: connector,
+        zIndex: 0
+      })
+      
+      // 选中新边
+      this.graph.select(newEdge)
+      
+      // 如果有动画配置，应用动画
+      if (updates.animation || edgeData?.animation) {
+        this.applyEdgeAnimation(newEdge, updates.animation || edgeData.animation)
+      }
+      
+      return
+    }
+    
     // 更新属性
     if (updates.attrs) {
+      // 调试日志：记录更新前的状态
+      const beforeAttrs = edge.getAttrs()
+      if (import.meta.env.DEV) {
+        console.log('[EdgeOperations] 更新边属性 - 更新前:', {
+          id: edge.id,
+          shape: edge.shape,
+          before: {
+            shadowWidth: beforeAttrs.shadow?.strokeWidth,
+            shadowColor: beforeAttrs.shadow?.stroke,
+            lineWidth: beforeAttrs.line?.strokeWidth,
+            lineColor: beforeAttrs.line?.stroke,
+            highlightWidth: beforeAttrs.highlight?.strokeWidth,
+            highlightColor: beforeAttrs.highlight?.stroke
+          },
+          updates: updates.attrs
+        })
+      }
+      
       Object.keys(updates.attrs).forEach(key => {
         const attrValue = updates.attrs[key]
         if (typeof attrValue === 'object') {
           Object.keys(attrValue).forEach(subKey => {
             edge.attr(`${key}/${subKey}`, attrValue[subKey])
-            // 更新保存的原始样式
-            if (edge.data?.originalAttrs?.[key]) {
-              edge.data.originalAttrs[key][subKey] = attrValue[subKey]
-            }
           })
         } else {
           edge.attr(key, attrValue)
         }
       })
       
-      // 重新应用选中高亮效果（只改变颜色）
+      // 更新边属性后无需重新应用选中效果（因为选中不改变样式）
       const currentAttrs = edge.getAttrs()
       const newData = Object.assign({}, edge.data, { originalAttrs: currentAttrs })
       edge.setData(newData)
-      edge.attr('line/stroke', '#3b82f6')
+      
+      if (import.meta.env.DEV) {
+        console.log('[EdgeOperations] 更新边属性完成，无需重新应用选中样式')
+      }
     }
     
     // 更新路由

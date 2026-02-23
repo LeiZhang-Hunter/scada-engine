@@ -80,7 +80,10 @@ export { animationEngine } from './utils/animationEngine'
 // 导出事件处理工具
 export { registerNodeEvents } from './utils/eventUtils'
 
-
+// 导出 SVG 组件加载工具
+export { loadExampleSvgComponents } from './svg/helpers/utils'
+export { svgLoader } from './svg/core/loader'
+export type { SVGLoader } from './svg/core/loader'
 
 // 导出设备点位相关类型
 export type {
@@ -265,9 +268,22 @@ export {
 
 // 安装函数 - 支持 app.use() 方式注册
 export const install = (app: App) => {
+  // 注册所有组件
   Object.entries(components).forEach(([name, component]) => {
     app.component(name, component)
   })
+  
+  // 自动加载 SVG 示例组件（异步，不阻塞应用启动）
+  if (typeof window !== 'undefined') {
+    import('./svg/helpers/utils').then(({ loadExampleSvgComponents }) => {
+      loadExampleSvgComponents().catch(err => {
+        // 静默失败，不影响应用运行
+        if (import.meta.env.DEV) {
+          console.warn('[SCADA Engine] SVG 组件自动加载失败:', err)
+        }
+      })
+    })
+  }
 }
 
 // 默认导出

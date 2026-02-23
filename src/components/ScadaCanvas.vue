@@ -111,7 +111,7 @@
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { Graph } from '@antv/x6'
 import { Selection } from '@antv/x6-plugin-selection'
-import { Snapline } from '@antv/x6-plugin-snapline'
+import { Transform } from '@antv/x6-plugin-transform'
 import { register } from '@antv/x6-vue-shape'
 import Header from './Header.vue'
 import ComponentLibrary from './ComponentLibrary.vue'
@@ -400,6 +400,91 @@ onMounted(async () => {
 		}
 	}, true)
 
+	// 注册管道样式的边（具有立体感的管道效果）
+	Graph.registerEdge('pipeline-edge', {
+		inherit: 'edge',
+		markup: [
+			// 外层阴影（模拟管道底部）
+			{
+				tagName: 'path',
+				selector: 'shadow',
+				attrs: {
+					fill: 'none'
+				}
+			},
+			// 主管道
+			{
+				tagName: 'path',
+				selector: 'line',
+				attrs: {
+					fill: 'none'
+				}
+			},
+			// 内层高光（模拟管道顶部）
+			{
+				tagName: 'path',
+				selector: 'highlight',
+				attrs: {
+					fill: 'none'
+				}
+			},
+			// 透明点击区域
+			{
+				tagName: 'path',
+				selector: 'wrap',
+				attrs: {
+					fill: 'none',
+					stroke: 'rgba(0,0,0,0)',
+					strokeWidth: 20
+				}
+			},
+			// 流动动画圆点
+			{
+				tagName: 'circle',
+				selector: 'circle'
+			}
+		],
+		attrs: {
+			// 外层阴影（深色，模拟立体感）
+			shadow: {
+				connection: true,
+				stroke: '#1e293b',
+				strokeWidth: 10,
+				strokeLinecap: 'butt',
+				strokeLinejoin: 'miter'
+			},
+			// 主管道（深蓝灰色）
+			line: {
+				connection: true,
+				stroke: '#475569',
+				strokeWidth: 8,
+				strokeLinecap: 'butt',
+				strokeLinejoin: 'miter',
+				targetMarker: {
+					name: 'block',
+					width: 10,
+					height: 8,
+					fill: '#475569'
+				}
+			},
+			// 内层高光（浅色，模拟光照）
+			highlight: {
+				connection: true,
+				stroke: '#94a3b8',
+				strokeWidth: 3,
+				strokeLinecap: 'butt',
+				strokeLinejoin: 'miter',
+				strokeDasharray: '0',
+				strokeDashoffset: 0
+			},
+			wrap: {
+				connection: true,
+				strokeLinecap: 'butt',
+				strokeLinejoin: 'miter'
+			}
+		}
+	}, true)
+
 	// ========== 动态注册 Vue 组件 ==========
 	// 遍历组件注册表，自动注册所有包含 Vue 组件的配置
 	const allComponents = componentRegistry.getAllComponents()
@@ -504,7 +589,6 @@ onMounted(async () => {
 			}
 		}
 	})
-
 	// 使用插件:选择插件（仅编辑模式）
 	if (!props.previewMode) {
 		graph.use(
@@ -518,18 +602,21 @@ onMounted(async () => {
 				pointerEvents: 'none' // 不阻止鼠标事件
 			})
 		)
-	}
-
-	// 使用插件：对齐参考线
-	if (canvasConfig.guides.enabled) {
 		graph.use(
-			new Snapline({
-				enabled: true,
-				sharp: true,
-				clean: true
+			new Transform({
+				resizing: {
+					enabled: true,
+					minWidth: 20,
+					minHeight: 20,
+				},
+				rotating: {
+					enabled: true,
+					grid: 15,
+				},
 			})
 		)
 	}
+
 
 	// 现在应用初始容器尺寸（graph 已创建）
 	// 使用 nextTick 确保侧边栏已完全渲染
@@ -1401,7 +1488,56 @@ defineExpose({
 	transition: stroke 0.3s ease, stroke-width 0.3s ease;
 }
 
-/* 慢速流动 */
+/* 隐藏X6默认的选中边框 */
+:deep(.x6-edge-selected rect),
+:deep(.x6-edge-selected .selection-box),
+:deep(.x6-cell-selected .selection-box) {
+	display: none !important;
+}
+
+/* 隐藏边的选中高亮 */
+:deep(.x6-edge.x6-cell-selected path[data-selector="selection"]) {
+	display: none !important;
+}
+
+/* 确保wrap层始终透明不可见 */
+:deep(.x6-edge path[data-selector="wrap"]),
+:deep(.x6-edge-selected path[data-selector="wrap"]),
+:deep(.x6-edge.x6-cell-selected path[data-selector="wrap"]) {
+	stroke: rgba(0,0,0,0) !important;
+	fill: none !important;
+}
+
+/* 禁用X6对shadow、line、highlight层的选中样式修改 */
+:deep(.x6-edge-selected path[data-selector="shadow"]),
+:deep(.x6-edge.x6-cell-selected path[data-selector="shadow"]) {
+	/* 不设置stroke，让它保持原始值 */
+}
+
+:deep(.x6-edge-selected path[data-selector="line"]),
+:deep(.x6-edge.x6-cell-selected path[data-selector="line"]) {
+	/* 不设置stroke，让它保持原始值 */
+}
+
+:deep(.x6-edge-selected path[data-selector="highlight"]),
+:deep(.x6-edge.x6-cell-selected path[data-selector="highlight"]) {
+	/* 不设置stroke，让它保持原始值 */
+}
+
+/* 确保选中时边的所有层保持可见且样式不变 */
+:deep(.x6-edge-selected),
+:deep(.x6-edge.x6-cell-selected) {
+	opacity: 1 !important;
+}
+
+/* 禁用 X6 可能添加的选中相关 CSS 类的样式影响 */
+:deep(.x6-edge-selected path),
+:deep(.x6-edge.x6-cell-selected path) {
+	opacity: 1 !important;
+	visibility: visible !important;
+}
+
+/* 慧速流动 */
 :deep(.edge-flow-slow) {
 	animation: edge-flow 4s linear infinite;
 }

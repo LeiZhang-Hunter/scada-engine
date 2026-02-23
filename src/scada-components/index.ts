@@ -20,8 +20,5 @@ export type {
   PropType
 } from './types'
 
-// 导出基础组件
-export * as BasicComponents from './basic'
-
 // 导出IoT组件
-export * as IoTComponents from './iot'
+export * as IoTComponents from './chart'

@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- 组件元数据 -->
+  <metadata>
+    <scada-config><![CDATA[
+    {
+      "component": {
+        "id": "light-bulb",
+        "name": "灯泡",
+        "category": "iot",
+        "icon": "💡",
+        "description": "可控制开关状态和颜色的灯泡组件",
+        "version": "1.0.0",
+        "author": "SCADA Engine"
+      },
+      "size": {
+        "width": 100,
+        "height": 120
+      },
+      "presetBindings": [
+        {
+          "partId": "part-bulbGlow",
+          "suggestedDriverProperty": "state",
+          "label": "开关状态",
+          "valueType": "boolean",
+          "booleanOptions": [
+            { "value": 0, "label": "关闭" },
+            { "value": 1, "label": "开启" }
+          ],
+          "suggestedTemplate": "value-opacity",
+          "suggestedParams": {
+            "type": "value-opacity",
+            "inputRange": { "min": 0, "max": 1 },
+            "outputRange": { "min": 0, "max": 1 }
+          }
+        },
+        {
+          "partId": "part-outerGlow",
+          "suggestedDriverProperty": "state",
+          "label": "开关状态",
+          "valueType": "boolean",
+          "booleanOptions": [
+            { "value": 0, "label": "关闭" },
+            { "value": 1, "label": "开启" }
+          ],
+          "suggestedTemplate": "value-opacity",
+          "suggestedParams": {
+            "type": "value-opacity",
+            "inputRange": { "min": 0, "max": 1 },
+            "outputRange": { "min": 0, "max": 0.3 }
+          }
+        },
+        {
+          "partId": "part-filament",
+          "suggestedDriverProperty": "state",
+          "label": "开关状态",
+          "valueType": "boolean",
+          "booleanOptions": [
+            { "value": 0, "label": "关闭" },
+            { "value": 1, "label": "开启" }
+          ],
+          "suggestedTemplate": "value-opacity",
+          "suggestedParams": {
+            "type": "value-opacity",
+            "inputRange": { "min": 0, "max": 1 },
+            "outputRange": { "min": 0, "max": 0.8 }
+          }
+        }
+      ],
+      "ports": [
+        {
+          "id": "port-power-in",
+          "group": "bottom"
+        },
+        {
+          "id": "port-control",
+          "group": "left",
+          "args": {
+            "y": "50%"
+          }
+        }
+      ]
+    }
+    ]]></scada-config>
+  </metadata>
+  
+  <!-- 渐变定义 -->
+  <defs>
+    <!-- 灯泡玻璃渐变（关闭状态） -->
+    <radialGradient id="bulb-gradient-off" cx="40%" cy="30%">
+      <stop offset="0%" stop-color="#e5e7eb" />
+      <stop offset="50%" stop-color="#d1d5db" />
+      <stop offset="100%" stop-color="#9ca3af" />
+    </radialGradient>
+    
+    <!-- 灯泡玻璃渐变（开启状态） -->
+    <radialGradient id="bulb-gradient-on" cx="40%" cy="30%">
+      <stop offset="0%" stop-color="#fff9e6" />
+      <stop offset="50%" stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#d97706" />
+    </radialGradient>
+    
+    <!-- 灯泡底座渐变 -->
+    <linearGradient id="base-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#94a3b8" />
+      <stop offset="50%" stop-color="#64748b" />
+      <stop offset="100%" stop-color="#475569" />
+    </linearGradient>
+    
+    <!-- 光晕滤镜 -->
+    <filter id="glow-filter">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <!-- 外发光滤镜 -->
+    <filter id="outer-glow-filter">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feFlood flood-color="#fbbf24" flood-opacity="0.6" result="color"/>
+      <feComposite in="color" in2="blur" operator="in" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- 组件主体 -->
+  <g id="root">
+    <!-- 外发光（根据状态控制透明度） -->
+    <circle 
+      id="part-outerGlow"
+      cx="50" 
+      cy="35" 
+      r="32"
+      fill="#fbbf24"
+      opacity="0"
+      filter="url(#outer-glow-filter)"
+    />
+    
+    <!-- 灯泡玻璃球体 -->
+    <ellipse
+      cx="50"
+      cy="35"
+      rx="25"
+      ry="28"
+      fill="url(#bulb-gradient-off)"
+      stroke="#cbd5e1"
+      stroke-width="0.5"
+    />
+    
+    <!-- 灯泡发光层（根据状态控制） -->
+    <ellipse
+      id="part-bulbGlow"
+      cx="50"
+      cy="35"
+      rx="25"
+      ry="28"
+      fill="url(#bulb-gradient-on)"
+      opacity="0"
+      filter="url(#glow-filter)"
+    />
+    
+    <!-- 灯泡高光 -->
+    <ellipse
+      cx="42"
+      cy="25"
+      rx="8"
+      ry="10"
+      fill="#ffffff"
+      opacity="0.3"
+    />
+    
+    <!-- 灯丝（根据状态显示） -->
+    <g id="part-filament" opacity="0">
+      <path
+        d="M 45 30 Q 47 35 45 40"
+        stroke="#ff9500"
+        stroke-width="1.5"
+        fill="none"
+      />
+      <path
+        d="M 55 30 Q 53 35 55 40"
+        stroke="#ff9500"
+        stroke-width="1.5"
+        fill="none"
+      />
+    </g>
+    
+    <!-- 灯泡底部连接部分 -->
+    <ellipse
+      cx="50"
+      cy="60"
+      rx="15"
+      ry="4"
+      fill="#94a3b8"
+    />
+    
+    <!-- 灯泡螺纹底座 -->
+    <g>
+      <!-- 螺纹线条 -->
+      <rect x="40" y="63" width="20" height="3" fill="url(#base-gradient)" rx="1"/>
+      <rect x="40" y="67" width="20" height="3" fill="url(#base-gradient)" rx="1"/>
+      <rect x="40" y="71" width="20" height="3" fill="url(#base-gradient)" rx="1"/>
+      <rect x="40" y="75" width="20" height="3" fill="url(#base-gradient)" rx="1"/>
+      
+      <!-- 螺纹阴影 -->
+      <rect x="40" y="66" width="20" height="1" fill="#1e293b" opacity="0.3"/>
+      <rect x="40" y="70" width="20" height="1" fill="#1e293b" opacity="0.3"/>
+      <rect x="40" y="74" width="20" height="1" fill="#1e293b" opacity="0.3"/>
+      <rect x="40" y="78" width="20" height="1" fill="#1e293b" opacity="0.3"/>
+    </g>
+    
+    <!-- 底座 -->
+    <ellipse
+      cx="50"
+      cy="80"
+      rx="12"
+      ry="5"
+      fill="url(#base-gradient)"
+    />
+    
+    <!-- 底座底部 -->
+    <ellipse
+      cx="50"
+      cy="83"
+      rx="8"
+      ry="3"
+      fill="#334155"
+    />
+    
+    <!-- 底部接触点 -->
+    <circle
+      cx="50"
+      cy="85"
+      r="2"
+      fill="#475569"
+    />
+  </g>
+</svg>

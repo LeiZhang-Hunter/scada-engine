@@ -196,6 +196,61 @@
 										step="1000"
 									/>
 								</div>
+								
+								<div class="form-item">
+									<div class="header-label-row">
+										<label>请求头 (Headers)</label>
+										<button class="btn-icon-add" @click="addHeader" type="button" title="添加请求头">
+											<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+												<line x1="12" y1="5" x2="12" y2="19"></line>
+												<line x1="5" y1="12" x2="19" y2="12"></line>
+											</svg>
+											添加
+										</button>
+									</div>
+													
+									<div class="headers-list">
+										<div v-if="httpHeaders.length === 0" class="empty-headers">
+											暂无自定义请求头
+										</div>
+										<div 
+											v-for="(header, index) in httpHeaders" 
+											:key="index"
+											class="header-item"
+										>
+											<input 
+												v-model="header.key" 
+												type="text" 
+												placeholder="Key"
+												class="header-input key-input"
+												@input="syncHeadersToConfig"
+											/>
+											<div class="separator">:</div>
+											<input 
+												v-model="header.value" 
+												type="text" 
+												placeholder="Value"
+												class="header-input value-input"
+												@input="syncHeadersToConfig"
+											/>
+											<button class="btn-icon-remove" @click="removeHeader(index)" type="button" title="删除">
+												<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+													<polyline points="3 6 5 6 21 6"></polyline>
+													<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+												</svg>
+											</button>
+										</div>
+									</div>
+								</div>
+								
+								<div class="form-item">
+									<label>请求体</label>
+									<textarea 
+										v-model="formData.config.body" 
+										rows="3"
+										placeholder="POST/PUT方法的请求体"
+									/>
+								</div>
 							</div>
 
 							<!-- SSE 配置 -->
@@ -286,6 +341,7 @@ const emit = defineEmits<{
 
 const selectedDataSource = ref<DataSource | null>(null)
 const isAddingNew = ref(false)
+const httpHeaders = ref<Array<{ key: string; value: string }>>([])
 
 const formData = ref<any>({
 	name: '',
@@ -301,6 +357,8 @@ const formData = ref<any>({
 		url: '',
 		method: 'GET',
 		pollInterval: 5000,
+		headers: {},
+		body: '',
 		sseUrl: '',
 		eventType: ''
 	}
@@ -316,6 +374,16 @@ const selectDataSource = (ds: DataSource) => {
 		type: ds.type,
 		enabled: ds.enabled,
 		config: { ...ds.config }
+	}
+	
+	// 初始化HTTP headers列表
+	if (ds.type === 'HTTP' && ds.config.headers) {
+		httpHeaders.value = Object.entries(ds.config.headers).map(([key, value]) => ({
+			key,
+			value: String(value)
+		}))
+	} else {
+		httpHeaders.value = []
 	}
 }
 
@@ -380,6 +448,28 @@ const handleClose = () => {
 const formatTime = (isoString: string) => {
 	const date = new Date(isoString)
 	return date.toLocaleString('zh-CN')
+}
+
+// 添加请求头
+const addHeader = () => {
+	httpHeaders.value.push({ key: '', value: '' })
+}
+
+// 删除请求头
+const removeHeader = (index: number) => {
+	httpHeaders.value.splice(index, 1)
+	syncHeadersToConfig()
+}
+
+// 同步headers列表到config
+const syncHeadersToConfig = () => {
+	const headers: Record<string, string> = {}
+	httpHeaders.value.forEach(header => {
+		if (header.key.trim()) {
+			headers[header.key.trim()] = header.value
+		}
+	})
+	formData.value.config.headers = headers
 }
 </script>
 
@@ -692,6 +782,7 @@ const formatTime = (isoString: string) => {
 .form-item input[type="text"],
 .form-item input[type="password"],
 .form-item input[type="number"],
+.form-item textarea,
 .form-item select {
 	width: 100%;
 	padding: 10px 12px;
@@ -701,16 +792,19 @@ const formatTime = (isoString: string) => {
 	color: #e2e8f0;
 	font-size: 13px;
 	transition: all 0.2s;
+	resize: vertical;
 }
 
 .form-item input:focus,
+.form-item textarea:focus,
 .form-item select:focus {
 	outline: none;
 	border-color: #3b82f6;
 	box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
-.form-item input::placeholder {
+.form-item input::placeholder,
+.form-item textarea::placeholder {
 	color: #64748b;
 }
 
@@ -720,6 +814,125 @@ const formatTime = (isoString: string) => {
 	font-size: 11px;
 	color: #64748b;
 	line-height: 1.4;
+}
+
+/* Header键值对列表 */
+.header-label-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 12px;
+}
+
+.btn-icon-add {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 6px 12px;
+	background: #3b82f6;
+	color: white;
+	border: none;
+	border-radius: 4px;
+	font-size: 12px;
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.btn-icon-add:hover {
+	background: #2563eb;
+}
+
+.headers-list {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	max-height: 240px;
+	overflow-y: auto;
+	padding: 2px;
+}
+
+.empty-headers {
+	padding: 24px;
+	text-align: center;
+	color: #64748b;
+	font-size: 12px;
+	background: #0f172a;
+	border: 1px dashed #334155;
+	border-radius: 4px;
+}
+
+.header-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px;
+	background: #0f172a;
+	border: 1px solid #334155;
+	border-radius: 4px;
+	transition: all 0.2s;
+}
+
+.header-item:hover {
+	background: #1e293b;
+	border-color: #475569;
+}
+
+.header-input {
+	padding: 6px 10px;
+	background: #1e293b;
+	border: 1px solid #334155;
+	border-radius: 4px;
+	color: #e2e8f0;
+	font-size: 12px;
+	transition: all 0.2s;
+}
+
+.header-input:focus {
+	outline: none;
+	border-color: #3b82f6;
+	box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.header-input::placeholder {
+	color: #64748b;
+}
+
+.key-input {
+	flex: 0 0 140px;
+}
+
+.value-input {
+	flex: 1;
+	min-width: 0;
+}
+
+.separator {
+	color: #64748b;
+	font-size: 14px;
+	font-weight: 500;
+	flex-shrink: 0;
+}
+
+.btn-icon-remove {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	background: transparent;
+	border: 1px solid #334155;
+	border-radius: 4px;
+	color: #94a3b8;
+	cursor: pointer;
+	transition: all 0.2s;
+	flex-shrink: 0;
+}
+
+.btn-icon-remove:hover {
+	background: #dc2626;
+	border-color: #dc2626;
+	color: white;
 }
 
 .form-item select:disabled {

@@ -9,8 +9,7 @@
  */
 
 import type { ComponentRegistry, ComponentConfig, ComponentCategory } from './types'
-import * as BasicComponents from './basic'
-import * as IoTComponents from './iot'
+import * as IoTComponents from './chart'
 import { register } from '@antv/x6-vue-shape'
 
 // 组件懒加载配置
@@ -40,19 +39,13 @@ class ComponentRegistryManager {
    * 注册默认组件(立即加载)
    */
   private registerDefaultComponents() {
-    // 注册基础组件(必须立即加载)
-    this.register(BasicComponents.RectComponent)
-    this.register(BasicComponents.CircleComponent)
-    this.register(BasicComponents.TextComponent)
+    // 基础组件（rect/circle/text）由 SVG 示例加载，见 loadExampleSvgComponents
+    // IoT 组件（light/switch/valve/tank 等）也由 SVG 示例加载
+    // 所有 3D 工业组件已迁移为 SVG，删除 industrial-3d 系列
 
-    // IoT 基础组件(立即加载)
-    this.register(IoTComponents.LightComponent)
-    this.register(IoTComponents.SwitchComponent)
+    // ECharts 组件(立即加载)
     this.register(IoTComponents.EChartsGaugeComponent)
     this.register(IoTComponents.EChartsLineComponent)
-    
-    // Three.js 3D组件(懒加载)
-    this.register(IoTComponents.Tank3DThreeComponent)
   }
   
   /**

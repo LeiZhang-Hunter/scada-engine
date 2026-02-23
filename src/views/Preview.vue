@@ -91,6 +91,10 @@ onMounted(async () => {
 					stroke: 'rgba(0,0,0,0)',
 					strokeWidth: 20
 				}
+			},
+			{
+				tagName: 'circle',
+				selector: 'circle'
 			}
 		],
 		attrs: {
@@ -108,6 +112,83 @@ onMounted(async () => {
 				connection: true,
 				strokeLinecap: 'round',
 				strokeLinejoin: 'round'
+			}
+		}
+	}, true)
+	
+	// 注册管道样式的边（具有立体感的管道效果）
+	Graph.registerEdge('pipeline-edge', {
+		inherit: 'edge',
+		markup: [
+			{
+				tagName: 'path',
+				selector: 'shadow',
+				attrs: {
+					fill: 'none'
+				}
+			},
+			{
+				tagName: 'path',
+				selector: 'line',
+				attrs: {
+					fill: 'none'
+				}
+			},
+			{
+				tagName: 'path',
+				selector: 'highlight',
+				attrs: {
+					fill: 'none'
+				}
+			},
+			{
+				tagName: 'path',
+				selector: 'wrap',
+				attrs: {
+					fill: 'none',
+					stroke: 'rgba(0,0,0,0)',
+					strokeWidth: 20
+				}
+			},
+			{
+				tagName: 'circle',
+				selector: 'circle'
+			}
+		],
+		attrs: {
+			shadow: {
+				connection: true,
+				stroke: '#1e293b',
+				strokeWidth: 10,
+				strokeLinecap: 'butt',
+				strokeLinejoin: 'miter'
+			},
+			line: {
+				connection: true,
+				stroke: '#475569',
+				strokeWidth: 8,
+				strokeLinecap: 'butt',
+				strokeLinejoin: 'miter',
+				targetMarker: {
+					name: 'block',
+					width: 10,
+					height: 8,
+					fill: '#475569'
+				}
+			},
+			highlight: {
+				connection: true,
+				stroke: '#94a3b8',
+				strokeWidth: 3,
+				strokeLinecap: 'butt',
+				strokeLinejoin: 'miter',
+				strokeDasharray: '0',
+				strokeDashoffset: 0
+			},
+			wrap: {
+				connection: true,
+				strokeLinecap: 'butt',
+				strokeLinejoin: 'miter'
 			}
 		}
 	}, true)
@@ -172,14 +253,72 @@ const loadCanvasData = () => {
 			graph.fromJSON({ cells: data.cells })
 			hasData.value = true
 			console.log('画布数据加载成功，节点数:', graph.getNodes().length, '连线数:', graph.getEdges().length)
+			
+			// 恢复后，对所有启用了动画的连线应用动画
+			graph.getEdges().forEach((edge: any) => {
+				const edgeData = edge.getData()
+				if (edgeData?.animation?.enabled) {
+					applyEdgeAnimation(edge, edgeData.animation)
+				}
+			})
 		}
 	} catch (error) {
 		console.error('加载画布数据失败:', error)
 	}
 }
 
-const handleClose = () => {
-	window.close()
+// 应用边动画（与ScadaCanvas中的实现保持一致）
+const applyEdgeAnimation = (edge: any, animation: any) => {
+	if (!edge || typeof edge.attr !== 'function') {
+		console.warn('applyEdgeAnimation: edge 对象无效', edge)
+		return
+	}
+	
+	if (!animation || !animation.enabled) {
+		// 关闭动画
+		edge.attr('circle', undefined)
+		if (typeof edge.stopTransition === 'function') {
+			edge.stopTransition('attrs/circle/atConnectionRatio')
+		}
+		return
+	}
+	
+	// 使用光点流动动画
+	const duration = animation.duration || 2000
+	
+	// 获取line层的strokeWidth，作为小球的半径
+	const lineWidth = Number(edge.attr('line/strokeWidth')) || 4
+	const circleRadius = lineWidth * 0.5
+	
+	// 设置光点样式
+	edge.attr('circle', {
+		r: circleRadius,
+		atConnectionRatio: 0,
+		fill: {
+			type: 'radialGradient',
+			stops: [
+				{ offset: '0%', color: '#FFF' },
+				{ offset: '100%', color: edge.attr('line/stroke') || '#10b981' }
+			]
+		},
+		stroke: edge.attr('line/stroke') || '#10b981',
+		strokeWidth: 1
+	})
+	
+	// 开始动画
+	const startAnimation = () => {
+		edge.attr('circle/atConnectionRatio', 0, { silent: true })
+		edge.transition('attrs/circle/atConnectionRatio', 1, {
+			delay: 0,
+			duration: duration,
+			timing: 'linear',
+			complete: () => {
+				// 循环动画
+				startAnimation()
+			}
+		})
+	}
+	startAnimation()
 }
 </script>
 

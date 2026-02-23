@@ -6,6 +6,7 @@
 import type { Graph } from '@antv/x6'
 import type { Ref } from 'vue'
 import { canvasConfigManager } from '../scada-components/canvas'
+import { Snapline } from '@antv/x6-plugin-snapline'
 
 /**
  * 画布配置监听器类
@@ -15,6 +16,7 @@ export class CanvasConfigWatcher {
   private containerRef: Ref<any> | null = null
   private calculateFitScale: (() => number) | null = null
   private updateContainerSizeFn: (() => void) | null = null
+  private snaplinePlugin: any = null // 存储Snapline插件实例
 
   /**
    * 初始化配置监听器
@@ -29,6 +31,26 @@ export class CanvasConfigWatcher {
     this.containerRef = containerRef
     this.calculateFitScale = calculateFitScale
     this.updateContainerSizeFn = updateContainerSizeFn || null
+    
+    // 初始化Snapline插件
+    this.initializeSnapline()
+  }
+
+  /**
+   * 初始化Snapline插件
+   */
+  private initializeSnapline(): void {
+    if (!this.graph) return
+    
+    const config = canvasConfigManager.getConfig()
+    if (config.guides.enabled) {
+      this.snaplinePlugin = new Snapline({
+        enabled: true,
+        sharp: true,
+        clean: true
+      })
+      this.graph.use(this.snaplinePlugin)
+    }
   }
 
   /**
@@ -47,6 +69,9 @@ export class CanvasConfigWatcher {
 
     // 更新网格
     this.updateGrid(config.grid)
+    
+    // 更新参考线
+    this.updateGuides(config.guides)
 
     // 更新偏移
     this.graph.translate(config.offset.x, config.offset.y)
@@ -128,6 +153,33 @@ export class CanvasConfigWatcher {
   }
 
   /**
+   * 更新参考线
+   */
+  private updateGuides(guides: any): void {
+    if (!this.graph) return
+
+    if (guides.enabled) {
+      // 如果插件不存在，创建并添加
+      if (!this.snaplinePlugin) {
+        this.snaplinePlugin = new Snapline({
+          enabled: true,
+          sharp: true,
+          clean: true
+        })
+        this.graph.use(this.snaplinePlugin)
+      } else {
+        // 如果已存在，启用它
+        this.snaplinePlugin.enable()
+      }
+    } else {
+      // 禁用插件
+      if (this.snaplinePlugin) {
+        this.snaplinePlugin.disable()
+      }
+    }
+  }
+
+  /**
    * 清理资源
    */
   destroy(): void {
@@ -135,6 +187,7 @@ export class CanvasConfigWatcher {
     this.containerRef = null
     this.calculateFitScale = null
     this.updateContainerSizeFn = null
+    this.snaplinePlugin = null
   }
 }
 

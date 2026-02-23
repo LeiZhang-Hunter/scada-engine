@@ -59,6 +59,7 @@
     "@antv/x6": "^2.18.0",
     "@antv/x6-plugin-selection": "^2.2.0",
     "@antv/x6-plugin-snapline": "^2.1.0",
+    "@antv/x6-plugin-transform": "^2.1.8",
     "@vueuse/core": "^10.0.0",
     "echarts": "^5.5.0",
     "pinia": "^2.1.0",

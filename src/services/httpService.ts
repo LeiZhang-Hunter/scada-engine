@@ -82,11 +82,24 @@ export class HttpService {
       // 构建请求选项
       const options: RequestInit = {
         method: this.config.method || 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.config.headers
-        },
         signal: this.abortController.signal
+      }
+
+      // 构建请求头：优先使用用户自定义headers
+      // 只有在用户未设置Content-Type且有请求体时，才添加默认的application/json
+      const customHeaders = this.config.headers || {}
+      const hasCustomContentType = Object.keys(customHeaders).some(
+        key => key.toLowerCase() === 'content-type'
+      )
+      
+      const hasBody = this.config.body && 
+        (this.config.method === 'POST' || this.config.method === 'PUT')
+      
+      options.headers = {
+        // 仅在需要时添加默认Content-Type
+        ...(hasBody && !hasCustomContentType ? { 'Content-Type': 'application/json' } : {}),
+        // 用户自定义headers会覆盖默认值
+        ...customHeaders
       }
 
       // 添加请求体（POST/PUT）

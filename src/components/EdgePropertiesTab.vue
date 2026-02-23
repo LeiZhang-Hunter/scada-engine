@@ -3,6 +3,37 @@
 		<div class="property-section">
 			<h4 class="section-title">线条样式</h4>
 			
+			<!-- 边类型选择 -->
+			<div class="property-item">
+				<label class="property-label">边类型</label>
+				<select 
+					class="property-select"
+					:value="getEdgeShape()"
+					@change="updateEdgeShape"
+				>
+					<option value="animated-edge">普通线条</option>
+					<option value="pipeline-edge">管道样式</option>
+				</select>
+			</div>
+			
+			<!-- 管道内径（仅管道样式显示） -->
+			<div v-if="getEdgeShape() === 'pipeline-edge'" class="property-item">
+				<label class="property-label">管道内径</label>
+				<div class="number-input-wrapper">
+					<input 
+						type="number" 
+						class="property-input"
+						min="2"
+						max="30"
+						step="1"
+						:value="getPipelineDiameter()"
+						@input="updatePipelineDiameter"
+					/>
+					<span class="input-unit">px</span>
+				</div>
+				<div class="property-hint">调整管道的粗细，影响所有层的宽度</div>
+			</div>
+			
 			<!-- 线条颜色 -->
 			<div class="property-item">
 				<label class="property-label">线条颜色</label>
@@ -22,8 +53,8 @@
 				</div>
 			</div>
 
-			<!-- 线条粗细 -->
-			<div class="property-item">
+			<!-- 线条粗细（普通线条时显示） -->
+			<div v-if="getEdgeShape() === 'animated-edge'" class="property-item">
 				<label class="property-label">线条粗细</label>
 				<div class="number-input-wrapper">
 					<input 
@@ -199,6 +230,98 @@ const emit = defineEmits<Emits>()
 const edgeAttrs = computed(() => {
 	return props.selectedEdge?.getAttrs() || {}
 })
+
+// 获取当前边类型
+const getEdgeShape = () => {
+	return props.selectedEdge?.shape || 'animated-edge'
+}
+
+// 更新边类型
+const updateEdgeShape = (event: Event) => {
+	const value = (event.target as HTMLSelectElement).value
+	if (!props.selectedEdge) return
+	
+	// 获取当前边的数据
+	const edgeData = props.selectedEdge.getData()
+	const currentAttrs = props.selectedEdge.getAttrs()
+	
+	// 根据新类型设置默认样式
+	let newAttrs = { ...currentAttrs }
+	if (value === 'pipeline-edge') {
+		// 管道样式：设置特殊的多层样式
+		newAttrs = {
+			shadow: {
+				connection: true,
+				stroke: '#1e293b',
+				strokeWidth: 10,
+				strokeLinecap: 'round',
+				strokeLinejoin: 'round'
+			},
+			line: {
+				...currentAttrs.line,
+				stroke: currentAttrs.line?.stroke || '#475569',
+				strokeWidth: 8,
+				strokeLinecap: 'round',
+				strokeLinejoin: 'round'
+			},
+			highlight: {
+				connection: true,
+				stroke: '#94a3b8',
+				strokeWidth: 3,
+				strokeLinecap: 'round',
+				strokeLinejoin: 'round'
+			}
+		}
+	} else if (value === 'animated-edge') {
+		// 普通线条：移除额外的层
+		newAttrs = {
+			line: {
+				...currentAttrs.line,
+				stroke: currentAttrs.line?.stroke || '#10b981',
+				strokeWidth: currentAttrs.line?.strokeWidth || 2
+			}
+		}
+	}
+	
+	// 更新边的 shape 和 attrs
+	emit('updateEdge', {
+		shape: value,
+		attrs: newAttrs,
+		data: edgeData
+	})
+}
+
+// 获取管道内径（基于主管道的 strokeWidth）
+const getPipelineDiameter = () => {
+	if (!props.selectedEdge || props.selectedEdge.shape !== 'pipeline-edge') {
+		return 8 // 默认值
+	}
+	return edgeAttrs.value.line?.strokeWidth || 8
+}
+
+// 更新管道内径（同时调整所有层的宽度）
+const updatePipelineDiameter = (event: Event) => {
+	const diameter = Number((event.target as HTMLInputElement).value)
+	if (!props.selectedEdge || props.selectedEdge.shape !== 'pipeline-edge') return
+	
+	// 根据内径计算各层宽度
+	// 阴影层（shadow）：保持固定宽度，不随内径变化
+	// 主管道（line）= 内径
+	// 高光层（highlight）= 内径 * 0.375
+	const lineWidth = diameter*0.5
+	const highlightWidth = Math.max(2, diameter * 0.375)
+	
+	emit('updateEdge', {
+		attrs: {
+			line: {
+				strokeWidth: lineWidth
+			},
+			highlight: {
+				strokeWidth: highlightWidth
+			},
+		}
+	})
+}
 
 // 更新线条颜色
 const updateStroke = (event: Event) => {
@@ -468,6 +591,13 @@ const updateAnimationDuration = (event: Event) => {
 	font-size: 12px;
 	color: #64748b;
 	min-width: 24px;
+}
+
+.property-hint {
+	font-size: 11px;
+	color: #64748b;
+	margin-top: 4px;
+	line-height: 1.4;
 }
 
 .property-select {

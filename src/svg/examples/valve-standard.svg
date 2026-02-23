@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <!-- 组件元数据 -->
+  <metadata>
+    <scada-config><![CDATA[
+    {
+      "component": {
+        "id": "valve-standard",
+        "name": "标准阀门",
+        "category": "custom",
+        "icon": "🚰",
+        "description": "带开度指示的标准阀门组件",
+        "version": "1.0.0",
+        "author": "SCADA Engine"
+      },
+      "size": {
+        "width": 120,
+        "height": 120
+      },
+      "presetBindings": [
+        {
+          "partId": "part-valveHandle",
+          "suggestedDriverProperty": "opening",
+          "label": "阀门开度",
+          "valueType": "number",
+          "suggestedTemplate": "opening-rotate",
+          "suggestedParams": {
+            "type": "opening-rotate",
+            "inputRange": { "min": 0, "max": 90 },
+            "outputRange": { "min": 0, "max": 90 },
+            "origin": "center"
+          }
+        }
+      ],
+      "ports": [
+        {
+          "id": "port-inlet",
+          "group": "top"
+        },
+        {
+          "id": "port-outlet",
+          "group": "bottom"
+        },
+        {
+          "id": "port-control",
+          "group": "left",
+          "args": {
+            "y": "50%"
+          }
+        },
+        {
+          "id": "port-feedback",
+          "group": "right",
+          "args": {
+            "y": "50%"
+          }
+        }
+      ]
+    }
+    ]]></scada-config>
+  </metadata>
+  
+  <!-- 渐变定义 -->
+  <defs>
+    <linearGradient id="valve-body-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#64748b" />
+      <stop offset="100%" stop-color="#475569" />
+    </linearGradient>
+    <linearGradient id="valve-handle-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#94a3b8" />
+      <stop offset="100%" stop-color="#64748b" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 组件主体 -->
+  <g id="root">
+    <!-- 阀门主体 -->
+    <rect 
+      x="35" 
+      y="40" 
+      width="50" 
+      height="40" 
+      rx="4" 
+      fill="url(#valve-body-gradient)" 
+      stroke="#334155" 
+      stroke-width="2"
+    />
+    
+    <!-- 阀门手柄（可旋转部分） -->
+    <g id="part-valveHandle">
+      <rect 
+        x="52" 
+        y="35" 
+        width="16" 
+        height="50" 
+        rx="2" 
+        fill="url(#valve-handle-gradient)" 
+        stroke="#334155" 
+        stroke-width="2"
+      />
+      <circle cx="60" cy="60" r="6" fill="#475569" stroke="#334155" stroke-width="1"/>
+    </g>
+    
+    <!-- 状态指示灯 -->
+    <circle 
+      id="part-statusIndicator" 
+      cx="60" 
+      cy="25" 
+      r="8" 
+      fill="#94a3b8" 
+      stroke="#334155" 
+      stroke-width="2"
+    />
+    
+    <!-- 管道连接点 -->
+    <line x1="60" y1="20" x2="60" y2="0" stroke="#475569" stroke-width="4" stroke-linecap="round"/>
+    <line x1="60" y1="100" x2="60" y2="120" stroke="#475569" stroke-width="4" stroke-linecap="round"/>
+    
+    <!-- 装饰螺栓 -->
+    <circle cx="40" cy="50" r="3" fill="#334155"/>
+    <circle cx="80" cy="50" r="3" fill="#334155"/>
+    <circle cx="40" cy="70" r="3" fill="#334155"/>
+    <circle cx="80" cy="70" r="3" fill="#334155"/>
+  </g>
+</svg>

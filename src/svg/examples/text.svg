@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 40">
+  <metadata>
+    <scada-config><![CDATA[
+    {
+      "component": {
+        "id": "text",
+        "name": "\u6587\u672c",
+        "category": "basic",
+        "icon": "T",
+        "description": "\u6587\u672c\u6807\u7b7e\u7ec4\u4ef6",
+        "version": "1.0.0",
+        "author": "SCADA Engine"
+      },
+      "size": {
+        "width": 100,
+        "height": 40
+      },
+      "presetBindings": [],
+      "ports": [
+        { "id": "port-top", "group": "top" },
+        { "id": "port-right", "group": "right" },
+        { "id": "port-bottom", "group": "bottom" },
+        { "id": "port-left", "group": "left" }
+      ]
+    }
+    ]]></scada-config>
+  </metadata>
+  <g id="root">
+    <rect
+      x="2"
+      y="2"
+      width="96"
+      height="36"
+      rx="2"
+      fill="transparent"
+      stroke="#64748b"
+      stroke-width="1"
+      stroke-dasharray="5 5"
+    />
+    <text
+      id="part-text"
+      x="50"
+      y="24"
+      text-anchor="middle"
+      dominant-baseline="middle"
+      font-size="16"
+      fill="#e2e8f0"
+      font-family="system-ui, sans-serif"
+    >&#25991;&#26412;</text>
+  </g>
+</svg>

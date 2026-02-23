@@ -3,7 +3,7 @@
  * 统一管理所有画布事件监听器
  */
 
-import type { Graph, Node, Edge } from '@antv/x6'
+import type { Graph} from '@antv/x6'
 import type { Ref } from 'vue'
 import { animationEngine } from './animationEngine'
 import { contextMenuManager } from './contextMenuManager'
@@ -75,17 +75,47 @@ export class GraphEventManager {
           // 选中连线，应用高亮样式
           selectedEdge.value = cell
           selectedNode.value = null
-          // 保存原始样式
+          
+          // 选中边时立即恢复所有层的原始样式（对抗X6的默认修改）
           const originalAttrs = cell.getAttrs()
-          cell.data = { ...cell.data, originalAttrs }
-          // 应用选中样式：只改变颜色，不改变粗细
-          cell.attr('line/stroke', '#3b82f6') // 蓝色高亮
+          
+          // 使用 requestAnimationFrame 确保在 X6 修改样式后立即恢复
+          requestAnimationFrame(() => {
+            if (cell.shape === 'pipeline-edge') {
+              // 恢复管道三层的原始样式
+              if (originalAttrs.shadow) {
+                cell.attr('shadow/stroke', originalAttrs.shadow.stroke)
+                cell.attr('shadow/strokeWidth', originalAttrs.shadow.strokeWidth)
+              }
+              if (originalAttrs.line) {
+                cell.attr('line/stroke', originalAttrs.line.stroke)
+                cell.attr('line/strokeWidth', originalAttrs.line.strokeWidth)
+              }
+              if (originalAttrs.highlight) {
+                cell.attr('highlight/stroke', originalAttrs.highlight.stroke)
+                cell.attr('highlight/strokeWidth', originalAttrs.highlight.strokeWidth)
+              }
+            } else {
+              // 恢复普通线条的原始样式
+              if (originalAttrs.line) {
+                cell.attr('line/stroke', originalAttrs.line.stroke)
+                cell.attr('line/strokeWidth', originalAttrs.line.strokeWidth)
+              }
+            }
+            // 确保wrap层透明
+            cell.attr('wrap/stroke', 'rgba(0,0,0,0)')
+          })
+          
+          if (import.meta.env.DEV) {
+            console.log('[EventManager] 选中边，已恢复原始样式')
+          }
         }
       } else {
-        // 取消选中，恢复连线原始样式
-        if (selectedEdge.value && selectedEdge.value.data?.originalAttrs) {
-          const originalAttrs = selectedEdge.value.data.originalAttrs
-          selectedEdge.value.attr('line/stroke', originalAttrs.line?.stroke || '#10b981')
+        // 取消选中，无需恢夏样式（因为没有改变过）
+        if (selectedEdge.value) {
+          if (import.meta.env.DEV) {
+            console.log('[EventManager] 取消选中边，无需恢复样式')
+          }
         }
         selectedNode.value = null
         selectedEdge.value = null
@@ -100,12 +130,7 @@ export class GraphEventManager {
     if (!this.graph || !this.config) return
     
     const { selectedNode, selectedEdge } = this.config
-    
-    // 监听连线点击事件
-    this.graph.on('edge:click', ({ edge }: any) => {
-      // 选中连线 - 使用 Selection 插件选中
-      this.graph!.select(edge)
-    })
+  
     
     // 监听画布点击，取消连线选中
     this.graph.on('blank:click', () => {
@@ -120,9 +145,32 @@ export class GraphEventManager {
   private registerChangeEvents(): void {
     if (!this.graph || !this.config) return
     
+    // 监听连线创建完成事件，自动保存
+    this.graph.on('edge:connected', ({ isNew }: any) => {
+      if (isNew && this.graph) {
+        // 导入 canvasDataHandler 并保存数据
+        // 延迟一小下保存，确保连线完全创建完成
+        setTimeout(() => {
+          import('./canvasDataHandler').then(({ canvasDataHandler }) => {
+            canvasDataHandler.saveToLocal()
+            if (import.meta.env.DEV) {
+              console.log('[EventManager] 连线创建完成，已自动保存')
+            }
+          })
+        }, 100)
+      }
+    })
+    
     // 监听节点移动事件
     this.graph.on('node:change:position', () => {
       // 节点位置改变时，Vue 的 watch 会自动处理更新
+    })
+    
+    // 监听节点移动结束事件，自动保存
+    this.graph.on('node:moved', () => {
+      import('./canvasDataHandler').then(({ canvasDataHandler }) => {
+        canvasDataHandler.saveToLocal()
+      })
     })
 
     // 监听节点尺寸变化事件
@@ -217,11 +265,19 @@ export class GraphEventManager {
           animationEngine.stopAnimation(nodeId)
           graph.removeNode(nodeId)
           selectedNode.value = null
+          // 自动保存
+          import('./canvasDataHandler').then(({ canvasDataHandler }) => {
+            canvasDataHandler.saveToLocal()
+          })
         } else if (selectedEdge.value) {
           // 删除连线
           const edgeId = selectedEdge.value.id
           graph.removeEdge(edgeId)
           selectedEdge.value = null
+          // 自动保存
+          import('./canvasDataHandler').then(({ canvasDataHandler }) => {
+            canvasDataHandler.saveToLocal()
+          })
         }
       }
     }

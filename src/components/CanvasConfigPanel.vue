@@ -201,6 +201,15 @@
 						<span class="slider"></span>
 					</label>
 				</div>
+				
+				<!-- 参考线 -->
+				<div class="config-item">
+					<label>参考线</label>
+					<label class="switch">
+						<input type="checkbox" v-model="canvasConfig.guides.enabled" />
+						<span class="slider"></span>
+					</label>
+				</div>
 
 				<!-- 网格大小 -->
 				<div class="config-item" v-if="canvasConfig.grid.enabled">

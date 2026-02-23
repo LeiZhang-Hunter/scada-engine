@@ -28,6 +28,26 @@
 				</div>
 			</div>
 
+			<!-- 图表组件 -->
+			<div class="component-section" v-if="chartComponents.length > 0">
+				<div class="section-header" @click="toggleSection('chart')">
+					<h4 class="section-title">图表组件</h4>
+					<span class="toggle-icon" :class="{ collapsed: collapsedSections.chart }">▼</span>
+				</div>
+				<div class="component-grid" v-show="!collapsedSections.chart">
+					<div 
+						v-for="component in chartComponents"
+						:key="component.metadata.id"
+						class="component-item" 
+						@click="handleAddComponent(component)" 
+						:title="component.metadata.description || component.metadata.name"
+					>
+						<span class="component-icon">{{ component.metadata.icon }}</span>
+						<span class="component-name">{{ component.metadata.name }}</span>
+					</div>
+				</div>
+			</div>
+
 			<!-- IoT组件 -->
 			<div class="component-section" v-if="iotComponents.length > 0">
 				<div class="section-header" @click="toggleSection('iot')">
@@ -52,7 +72,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, onMounted, ref } from 'vue'
+import { computed, reactive, onMounted, onBeforeUnmount, ref } from 'vue'
 import { componentRegistry } from '../scada-components'
 import type { ComponentConfig } from '../scada-components'
 
@@ -76,21 +96,30 @@ const toggleCollapse = () => {
 // 折叠状态
 const collapsedSections = reactive({
 	basic: false,
+	chart: false,
 	iot: false
 })
 
 // 切换分组折叠状态
-const toggleSection = (section: 'basic' | 'iot') => {
+const toggleSection = (section: 'basic' | 'chart' | 'iot') => {
 	collapsedSections[section] = !collapsedSections[section]
 }
 
 // 强制刷新标记
 const refreshKey = ref(0)
 
+// 定时器 ID
+let intervalId: ReturnType<typeof setInterval> | undefined
+
 // 从注册表获取组件
 const basicComponents = computed(() => {
 	refreshKey.value // 依赖刷新标记
 	return componentRegistry.getComponentsByCategory('basic')
+})
+
+const chartComponents = computed(() => {
+	refreshKey.value // 依赖刷新标记
+	return componentRegistry.getComponentsByCategory('chart')
 })
 
 const iotComponents = computed(() => {
@@ -110,6 +139,30 @@ onMounted(async () => {
 		refreshKey.value++
 	} catch (error) {
 		console.error('[组件库] 预加载组件失败:', error)
+	}
+	
+	// 监听组件注册表变化，自动刷新
+	// 每隔 500ms 检查一次组件数量是否变化
+	let lastComponentCount = Object.keys(componentRegistry.getAllComponents()).length
+	const checkInterval = setInterval(() => {
+		const currentCount = Object.keys(componentRegistry.getAllComponents()).length
+		if (currentCount !== lastComponentCount) {
+			lastComponentCount = currentCount
+			refreshKey.value++
+			if (import.meta.env.DEV) {
+				console.log(`[组件库] 检测到新组件，已刷新，当前数量: ${currentCount}`)
+			}
+		}
+	}, 500)
+	
+	// 存储定时器 ID 供销毁时清理
+	intervalId = checkInterval
+})
+
+// 在 setup 顶层注册 onBeforeUnmount
+onBeforeUnmount(() => {
+	if (intervalId) {
+		clearInterval(intervalId)
 	}
 })
 </script>

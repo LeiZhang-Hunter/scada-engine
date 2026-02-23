@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 160">
+  <!-- 组件元数据 -->
+  <metadata>
+    <scada-config><![CDATA[
+    {
+      "component": {
+        "id": "tank-level",
+        "name": "液位罐",
+        "category": "custom",
+        "icon": "🛢️",
+        "description": "带液位显示的储罐组件",
+        "version": "1.0.0",
+        "author": "SCADA Engine"
+      },
+      "size": {
+        "width": 120,
+        "height": 160
+      },
+      "presetBindings": [
+        {
+          "partId": "part-liquidFill",
+          "suggestedDriverProperty": "level",
+          "label": "液位",
+          "valueType": "number",
+          "suggestedTemplate": "level-height",
+          "suggestedParams": {
+            "type": "level-height",
+            "inputRange": { "min": 0, "max": 100 },
+            "direction": "bottom-up"
+          }
+        },
+        {
+          "partId": "part-alarmLight",
+          "suggestedDriverProperty": "alarm",
+          "label": "报警状态",
+          "valueType": "boolean",
+          "booleanOptions": [
+            { "value": 0, "label": "正常" },
+            { "value": 1, "label": "报警" }
+          ],
+          "suggestedTemplate": "status-color",
+          "suggestedParams": {
+            "type": "status-color",
+            "colorMap": {
+              "0": "#10b981",
+              "1": "#ef4444",
+              "false": "#10b981",
+              "true": "#ef4444",
+              "normal": "#10b981",
+              "alarm": "#ef4444"
+            },
+            "defaultColor": "#94a3b8",
+            "applyTo": "fill"
+          }
+        }
+      ],
+      "ports": [
+        {
+          "id": "port-inlet",
+          "group": "top"
+        },
+        {
+          "id": "port-outlet",
+          "group": "bottom"
+        },
+        {
+          "id": "port-level-sensor",
+          "group": "left",
+          "args": {
+            "y": "50%"
+          }
+        },
+        {
+          "id": "port-control",
+          "group": "right",
+          "args": {
+            "y": "50%"
+          }
+        }
+      ]
+    }
+    ]]></scada-config>
+  </metadata>
+  
+  <!-- 渐变定义 -->
+  <defs>
+    <linearGradient id="tank-body-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e2e8f0" />
+      <stop offset="50%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#e2e8f0" />
+    </linearGradient>
+    <linearGradient id="liquid-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="50%" stop-color="#60a5fa" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 组件主体 -->
+  <g id="root">
+    <!-- 罐体外壳 -->
+    <rect 
+      x="20" 
+      y="30" 
+      width="80" 
+      height="110" 
+      rx="4" 
+      fill="url(#tank-body-gradient)" 
+      stroke="#64748b" 
+      stroke-width="3"
+      opacity="0.9"
+    />
+    
+    <!-- 液位填充（动态高度） -->
+    <rect 
+      id="part-liquidFill"
+      x="23" 
+      y="33" 
+      width="74" 
+      height="104" 
+      rx="2" 
+      fill="url(#liquid-gradient)" 
+      opacity="0.8"
+      data-original-height="104"
+      data-original-y="33"
+    />
+    
+    <!-- 罐体顶部 -->
+    <ellipse 
+      cx="60" 
+      cy="30" 
+      rx="40" 
+      ry="8" 
+      fill="#cbd5e1" 
+      stroke="#64748b" 
+      stroke-width="2"
+    />
+    
+    <!-- 罐体底部 -->
+    <ellipse 
+      cx="60" 
+      cy="140" 
+      rx="40" 
+      ry="8" 
+      fill="#94a3b8" 
+      stroke="#64748b" 
+      stroke-width="2"
+    />
+    
+    <!-- 管道连接（底部出口） -->
+    <rect 
+      x="55" 
+      y="145" 
+      width="10" 
+      height="15" 
+      fill="#64748b"
+    />
+    
+    <!-- 刻度线 -->
+    <line x1="15" y1="50" x2="20" y2="50" stroke="#64748b" stroke-width="1"/>
+    <line x1="15" y1="70" x2="20" y2="70" stroke="#64748b" stroke-width="1"/>
+    <line x1="15" y1="90" x2="20" y2="90" stroke="#64748b" stroke-width="1"/>
+    <line x1="15" y1="110" x2="20" y2="110" stroke="#64748b" stroke-width="1"/>
+    <line x1="15" y1="130" x2="20" y2="130" stroke="#64748b" stroke-width="1"/>
+    
+    <!-- 报警灯 -->
+    <circle 
+      id="part-alarmLight"
+      cx="60" 
+      cy="15" 
+      r="8" 
+      fill="#10b981" 
+      stroke="#334155" 
+      stroke-width="2"
+    />
+    
+    <!-- 液位文字背景 -->
+    <rect 
+      x="45" 
+      y="80" 
+      width="30" 
+      height="20" 
+      rx="2" 
+      fill="rgba(255,255,255,0.9)" 
+      stroke="#64748b" 
+      stroke-width="1"
+    />
+    
+    <!-- 装饰环 -->
+    <ellipse 
+      cx="60" 
+      cy="60" 
+      rx="42" 
+      ry="4" 
+      fill="none" 
+      stroke="#94a3b8" 
+      stroke-width="2"
+      opacity="0.5"
+    />
+    <ellipse 
+      cx="60" 
+      cy="110" 
+      rx="42" 
+      ry="4" 
+      fill="none" 
+      stroke="#94a3b8" 
+      stroke-width="2"
+      opacity="0.5"
+    />
+  </g>
+</svg>
