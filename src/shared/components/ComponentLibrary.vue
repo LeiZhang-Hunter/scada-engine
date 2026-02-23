@@ -3,71 +3,83 @@
 		<button class="collapse-btn" @click="toggleCollapse" :title="isCollapsed ? '展开组件库' : '折叠组件库'">
 			<span class="collapse-icon">◀</span>
 		</button>
-		<div class="library-header">
-			<h3>组件库</h3>
-		</div>
+		
+		<!-- 支持插槽自定义组件库内容 -->
+		<slot 
+			:basic-components="basicComponents"
+			:chart-components="chartComponents"
+			:iot-components="iotComponents"
+			:handle-add-component="handleAddComponent"
+			:collapsed-sections="collapsedSections"
+			:toggle-section="toggleSection"
+		>
+			<!-- 默认内容：标准组件库布局 -->
+			<div class="library-header">
+				<h3>组件库</h3>
+			</div>
 
-		<div class="library-content">
-			<!-- 基础组件 -->
-			<div class="component-section" v-if="basicComponents.length > 0">
-				<div class="section-header" @click="toggleSection('basic')">
-					<h4 class="section-title">基础组件</h4>
-					<span class="toggle-icon" :class="{ collapsed: collapsedSections.basic }">▼</span>
+			<div class="library-content">
+				<!-- 基础组件 -->
+				<div class="component-section" v-if="basicComponents.length > 0">
+					<div class="section-header" @click="toggleSection('basic')">
+						<h4 class="section-title">基础组件</h4>
+						<span class="toggle-icon" :class="{ collapsed: collapsedSections.basic }">▼</span>
+					</div>
+					<div class="component-grid" v-show="!collapsedSections.basic">
+						<div 
+							v-for="component in basicComponents"
+							:key="component.metadata.id"
+							class="component-item" 
+							@click="handleAddComponent(component)" 
+							:title="component.metadata.description || component.metadata.name"
+						>
+							<span class="component-icon">{{ component.metadata.icon }}</span>
+							<span class="component-name">{{ component.metadata.name }}</span>
+						</div>
+					</div>
 				</div>
-				<div class="component-grid" v-show="!collapsedSections.basic">
-					<div 
-						v-for="component in basicComponents"
-						:key="component.metadata.id"
-						class="component-item" 
-						@click="handleAddComponent(component)" 
-						:title="component.metadata.description || component.metadata.name"
-					>
-						<span class="component-icon">{{ component.metadata.icon }}</span>
-						<span class="component-name">{{ component.metadata.name }}</span>
+
+				<!-- 图表组件 -->
+				<div class="component-section" v-if="chartComponents.length > 0">
+					<div class="section-header" @click="toggleSection('chart')">
+						<h4 class="section-title">图表组件</h4>
+						<span class="toggle-icon" :class="{ collapsed: collapsedSections.chart }">▼</span>
+					</div>
+					<div class="component-grid" v-show="!collapsedSections.chart">
+						<div 
+							v-for="component in chartComponents"
+							:key="component.metadata.id"
+							class="component-item" 
+							@click="handleAddComponent(component)" 
+							:title="component.metadata.description || component.metadata.name"
+						>
+							<span class="component-icon">{{ component.metadata.icon }}</span>
+							<span class="component-name">{{ component.metadata.name }}</span>
+						</div>
+					</div>
+				</div>
+
+				<!-- IoT组件 -->
+				<div class="component-section" v-if="iotComponents.length > 0">
+					<div class="section-header" @click="toggleSection('iot')">
+						<h4 class="section-title">IoT组件</h4>
+						<span class="toggle-icon" :class="{ collapsed: collapsedSections.iot }">▼</span>
+					</div>
+					<div class="component-grid" v-show="!collapsedSections.iot">
+						<div 
+							v-for="component in iotComponents"
+							:key="component.metadata.id"
+							class="component-item" 
+							@click="handleAddComponent(component)" 
+							:title="component.metadata.description || component.metadata.name"
+						>
+							<span class="component-icon">{{ component.metadata.icon }}</span>
+							<span class="component-name">{{ component.metadata.name }}</span>
+						</div>
 					</div>
 				</div>
 			</div>
-
-			<!-- 图表组件 -->
-			<div class="component-section" v-if="chartComponents.length > 0">
-				<div class="section-header" @click="toggleSection('chart')">
-					<h4 class="section-title">图表组件</h4>
-					<span class="toggle-icon" :class="{ collapsed: collapsedSections.chart }">▼</span>
-				</div>
-				<div class="component-grid" v-show="!collapsedSections.chart">
-					<div 
-						v-for="component in chartComponents"
-						:key="component.metadata.id"
-						class="component-item" 
-						@click="handleAddComponent(component)" 
-						:title="component.metadata.description || component.metadata.name"
-					>
-						<span class="component-icon">{{ component.metadata.icon }}</span>
-						<span class="component-name">{{ component.metadata.name }}</span>
-					</div>
-				</div>
-			</div>
-
-			<!-- IoT组件 -->
-			<div class="component-section" v-if="iotComponents.length > 0">
-				<div class="section-header" @click="toggleSection('iot')">
-					<h4 class="section-title">IoT组件</h4>
-					<span class="toggle-icon" :class="{ collapsed: collapsedSections.iot }">▼</span>
-				</div>
-				<div class="component-grid" v-show="!collapsedSections.iot">
-					<div 
-						v-for="component in iotComponents"
-						:key="component.metadata.id"
-						class="component-item" 
-						@click="handleAddComponent(component)" 
-						:title="component.metadata.description || component.metadata.name"
-					>
-						<span class="component-icon">{{ component.metadata.icon }}</span>
-						<span class="component-name">{{ component.metadata.name }}</span>
-					</div>
-				</div>
-			</div>
-		</div>
+		</slot>
 	</aside>
 </template>
 

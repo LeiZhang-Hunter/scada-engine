@@ -71,35 +71,37 @@
 			</div>
 		</div>
 		
-		<!-- 文件操作组 - 靠右 -->
+		<!-- 文件操作组 - 靠右（支持插槽自定义）-->
 		<div class="header-right">
-			<div class="tool-group">
-				<button class="header-btn" @click="emit('dataSource')" title="数据源管理">
-					<Database class="icon-svg" />
-					<span>数据源</span>
-				</button>
-				<button class="header-btn" @click="emit('workflow')" title="流程编排">
-					<Workflow class="icon-svg" />
-					<span>流程编排</span>
-				</button>
-				<button class="header-btn" @click="emit('import')" title="导入">
-					<FolderOpen class="icon-svg" />
-					<span>导入</span>
-				</button>
-				<button class="header-btn" @click="emit('export')" title="导出">
-					<Download class="icon-svg" />
-					<span>导出</span>
-				</button>
-				<button class="header-btn" @click="emit('preview')" title="预览">
-					<Eye class="icon-svg" />
-					<span>预览</span>
-				</button>
-				<button class="header-btn" @click="emit('save')" title="保存">
-					<Save class="icon-svg" />
-					<span>保存</span>
-				</button>
-					
-			</div>
+			<slot name="right" :emit="emit">
+				<!-- 默认内容：文件操作按钮 -->
+				<div class="tool-group">
+					<button class="header-btn" @click="emit('dataSource')" title="数据源管理">
+						<Database class="icon-svg" />
+						<span>数据源</span>
+					</button>
+					<button class="header-btn" @click="emit('workflow')" title="流程编排">
+						<Workflow class="icon-svg" />
+						<span>流程编排</span>
+					</button>
+					<button class="header-btn" @click="emit('import')" title="导入">
+						<FolderOpen class="icon-svg" />
+						<span>导入</span>
+					</button>
+					<button class="header-btn" @click="emit('export')" title="导出">
+						<Download class="icon-svg" />
+						<span>导出</span>
+					</button>
+					<button class="header-btn" @click="emit('preview')" title="预览">
+						<Eye class="icon-svg" />
+						<span>预览</span>
+					</button>
+					<button class="header-btn" @click="emit('save')" title="保存">
+						<Save class="icon-svg" />
+						<span>保存</span>
+					</button>
+				</div>
+			</slot>
 		</div>
 	</header>
 </template>
@@ -112,7 +114,6 @@ import {
 	AlignEndHorizontal,
 	AlignStartVertical,
 	AlignVerticalJustifyCenter,
-	AlignCenterVertical,
 	AlignEndVertical,
 	AlignHorizontalSpaceAround,
 	AlignVerticalSpaceAround,
