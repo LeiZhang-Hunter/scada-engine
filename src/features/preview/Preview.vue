@@ -12,6 +12,24 @@
 				<div class="empty-text">暂无内容</div>
 				<div class="empty-hint">请先在编辑模式下添加组件并保存</div>
 			</div>
+			
+			<!-- 组件属性提示框（支持插槽自定义） -->
+			<NodeTooltip
+				:visible="tooltip.visible"
+				:node="tooltip.node"
+				:x="tooltip.x"
+				:y="tooltip.y"
+			>
+				<!-- 用户可以在这里自定义提示框内容 -->
+				<!-- 例如：
+				<template #default="{ node, data, properties }">
+					<div class="custom-tooltip">
+						<h3>{{ data.name }}</h3>
+						<p>{{ data.type }}</p>
+					</div>
+				</template>
+				-->
+			</NodeTooltip>
 		</div>
 	</div>
 </template>
@@ -23,6 +41,7 @@ import { register } from '@antv/x6-vue-shape'
 import * as ScadaComponents from '../../scada-components'
 import type { ComponentConfig } from '../../scada-components/types'
 import { applyEdgeAnimation } from '../../shared/utils/edgeAnimationUtils'
+import NodeTooltip from './components/NodeTooltip.vue'
 
 const canvasContainer = ref<HTMLElement>()
 const hasData = ref(false)
@@ -32,6 +51,19 @@ const canvasConfig = ref<any>({
 	background: {
 		color: '#1e293b'
 	}
+})
+
+// 提示框状态
+const tooltip = ref<{
+	visible: boolean
+	node: any
+	x: number
+	y: number
+}>({
+	visible: false,
+	node: null,
+	x: 0,
+	y: 0
 })
 
 let graph: Graph | null = null
@@ -243,10 +275,99 @@ const loadCanvasData = () => {
 					thickness: 1
 				}
 			} : false,
-			// 预览模式：禁用所有交互
-			interacting: false,
+			// 预览模式：禁用编辑交互，但保留鼠标事件
+			interacting: {
+				nodeMovable: false,      // 禁止拖动节点
+				edgeMovable: false,      // 禁止移动连线
+				edgeLabelMovable: false, // 禁止移动连线标签
+				arrowheadMovable: false, // 禁止移动箭头
+				vertexMovable: false,    // 禁止移动路径点
+				vertexAddable: false,    // 禁止添加路径点
+				vertexDeletable: false   // 禁止删除路径点
+			},
 			panning: false,
 			mousewheel: false
+		})
+			
+		// 监听鼠标事件显示组件属性
+		graph.on('node:mouseenter', ({ node, e }) => {
+			console.log('[Preview] 鼠标进入组件:', node.id)
+			const nodeData = node.getData()
+			const properties: Array<{ label: string; value: any }> = []
+					
+			// 收集组件属性
+			if (nodeData) {
+				// ID
+				if (nodeData.id) {
+					properties.push({ label: 'ID', value: nodeData.id })
+				}
+						
+				// 名称
+				if (nodeData.name) {
+					properties.push({ label: '名称', value: nodeData.name })
+				}
+						
+				// 类型
+				if (nodeData.type) {
+					properties.push({ label: '类型', value: nodeData.type })
+				}
+						
+				// SVG 组件的填充色
+				if (nodeData.fill !== undefined) {
+					properties.push({ label: '填充色', value: nodeData.fill })
+				}
+						
+				// SVG 组件的边框色
+				if (nodeData.stroke !== undefined) {
+					properties.push({ label: '边框色', value: nodeData.stroke })
+				}
+						
+				// 数据源
+				if (nodeData.dataSource) {
+					properties.push({ label: '数据源', value: nodeData.dataSource })
+				}
+						
+				// 绑定配置
+				if (nodeData.bindings && nodeData.bindings.length > 0) {
+					properties.push({ label: '绑定数量', value: nodeData.bindings.length })
+				}
+						
+				// 其他自定义属性（过滤掉已显示的和内部属性）
+				const excludeKeys = ['id', 'name', 'type', 'fill', 'stroke', 'dataSource', 'bindings', 
+					'presetBindings', 'internalAnimations', 'shape', 'ports', 'component']
+				Object.keys(nodeData).forEach(key => {
+					if (!excludeKeys.includes(key) && nodeData[key] !== undefined && nodeData[key] !== null) {
+						let value = nodeData[key]
+						if (typeof value === 'object') {
+							value = JSON.stringify(value)
+						}
+						properties.push({ label: key, value })
+					}
+				})
+			}
+						
+			console.log('[Preview] 显示属性:', { node: node.id, x: e.clientX, y: e.clientY })
+					
+			// 更新提示框
+			tooltip.value = {
+				visible: true,
+				node: node,
+				x: e.clientX,
+				y: e.clientY
+			}
+		})
+			
+		// 鼠标移动时更新位置
+		graph.on('node:mousemove', ({ e }) => {
+			if (tooltip.value.visible) {
+				tooltip.value.x = e.clientX
+				tooltip.value.y = e.clientY
+			}
+		})
+			
+		// 鼠标离开时隐藏提示框
+		graph.on('node:mouseleave', () => {
+			tooltip.value.visible = false
 		})
 		
 		// 清洗和验证 cells 数据

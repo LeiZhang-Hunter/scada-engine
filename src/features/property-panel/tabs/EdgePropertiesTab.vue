@@ -177,11 +177,11 @@
 				<label class="property-label">路由方式</label>
 				<select 
 					class="property-select"
-					:value="selectedEdge?.getRouter()?.name || 'manhattan'"
+					:value="selectedEdge?.getRouter()?.name || 'orth'"
 					@change="updateRouter"
 				>
-					<option value="manhattan">曼哈顿</option>
 					<option value="orth">正交</option>
+					<option value="manhattan">曼哈顿</option>
 					<option value="normal">直线</option>
 				</select>
 			</div>
