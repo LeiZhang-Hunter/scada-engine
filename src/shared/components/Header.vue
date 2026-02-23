@@ -28,23 +28,31 @@
 							
 				<!-- 对齐工具 -->
 				<div v-if="props.selectedNodesCount >= 2" class="tool-group">
+					<!-- 水平对齐 -->
 					<button class="toolbar-btn" @click="emit('alignLeft')" title="左对齐">
-						<AlignStartHorizontal class="icon-svg" />
-					</button>
-					<button class="toolbar-btn" @click="emit('alignCenter')" title="水平居中">
-						<AlignHorizontalJustifyCenter class="icon-svg" />
-					</button>
-					<button class="toolbar-btn" @click="emit('alignRight')" title="右对齐">
-						<AlignEndHorizontal class="icon-svg" />
-					</button>
-					<button class="toolbar-btn" @click="emit('alignTop')" title="顶部对齐">
 						<AlignStartVertical class="icon-svg" />
 					</button>
+					<button class="toolbar-btn" @click="emit('alignCenter')" title="水平居中">
+						<AlignVerticalJustifyCenter class="icon-svg" />
+					</button>
+					<button class="toolbar-btn" @click="emit('alignRight')" title="右对齐">
+						<AlignEndVertical class="icon-svg" />
+					</button>
+				</div>
+											
+				<!-- 垂直对齐组的分隔线 -->
+				<div v-if="props.selectedNodesCount >= 2" class="divider"></div>
+											
+				<!-- 垂直对齐 -->
+				<div v-if="props.selectedNodesCount >= 2" class="tool-group">
+					<button class="toolbar-btn" @click="emit('alignTop')" title="顶部对齐">
+						<AlignStartHorizontal class="icon-svg" />
+					</button>
 					<button class="toolbar-btn" @click="emit('alignMiddle')" title="垂直居中">
-						<AlignCenterVertical class="icon-svg" />
+						<AlignHorizontalJustifyCenter class="icon-svg" />
 					</button>
 					<button class="toolbar-btn" @click="emit('alignBottom')" title="底部对齐">
-						<AlignEndVertical class="icon-svg" />
+						<AlignEndHorizontal class="icon-svg" />
 					</button>
 				</div>
 									
@@ -103,6 +111,7 @@ import {
 	AlignHorizontalJustifyCenter,
 	AlignEndHorizontal,
 	AlignStartVertical,
+	AlignVerticalJustifyCenter,
 	AlignCenterVertical,
 	AlignEndVertical,
 	AlignHorizontalSpaceAround,
