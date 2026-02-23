@@ -179,7 +179,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Node, Edge } from '@antv/x6'
 import type { BindingConfig as StandardBindingConfig } from '../../shared/types/binding'
 import type { ComponentPoint } from '../../scada-components/types'
@@ -193,7 +193,6 @@ import AttributeConfigDialog from '../../shared/components/dialogs/AttributeConf
 import CustomCodeDialog from '../../shared/components/dialogs/CustomCodeDialog.vue'
 import WorkflowSelectorDialog from '../../shared/components/dialogs/WorkflowSelectorDialog.vue'
 import { generateEventId } from '../../shared/utils'
-import { dataSourceManager } from '../../features/data-source/services/dataSourceManager'
 import { componentRegistry } from '../../scada-components/registry'
 
 interface Props {
@@ -372,12 +371,32 @@ const updateLabel = (event: Event) => {
 
 const updateFill = (event: Event) => {
 	const value = (event.target as HTMLInputElement).value
-	emit('updateNode', { attrs: { body: { fill: value } } })
+	
+	// 检查是否为 SVG 组件
+	const nodeData = props.selectedNode?.getData()
+	if (nodeData?.type === 'svg' && nodeData?.internalAnimations) {
+		// SVG 组件：通过 data.fill 驱动内部动画
+		const newData = { ...nodeData, fill: value }
+		emit('updateNode', { data: newData })
+	} else {
+		// 普通组件：直接修改 attrs
+		emit('updateNode', { attrs: { body: { fill: value } } })
+	}
 }
 
 const updateStroke = (event: Event) => {
 	const value = (event.target as HTMLInputElement).value
-	emit('updateNode', { attrs: { body: { stroke: value } } })
+	
+	// 检查是否为 SVG 组件
+	const nodeData = props.selectedNode?.getData()
+	if (nodeData?.type === 'svg' && nodeData?.internalAnimations) {
+		// SVG 组件：通过 data.stroke 驱动内部动画
+		const newData = { ...nodeData, stroke: value }
+		emit('updateNode', { data: newData })
+	} else {
+		// 普通组件：直接修改 attrs
+		emit('updateNode', { attrs: { body: { stroke: value } } })
+	}
 }
 
 const updateStrokeWidth = (event: Event) => {

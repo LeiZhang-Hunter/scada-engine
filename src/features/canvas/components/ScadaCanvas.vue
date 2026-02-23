@@ -245,15 +245,12 @@ const calculateFitScale = () => {
 	
 	// 根据宽高比决定是以宽度还是高度为基准进行缩放
 	let autoScale
-	let scaleBy
 	if (canvasRatio > availableRatio) {
 		// 画布更宽（如 16:9 画布 vs 正方形容器），以宽度为基准
 		autoScale = availableWidth / canvasWidth
-		scaleBy = 'width'
 	} else {
 		// 画布更高（如 16:9 画布 vs 竖向容器），以高度为基准
 		autoScale = availableHeight / canvasHeight
-		scaleBy = 'height'
 	}
 	
 	// 最大不超过1（100%），避免画布被放大
@@ -313,10 +310,7 @@ const updateContainerTransform = () => {
 	// 设置容器的实际尺寸（而不是固定 1920x1080）
 	container.style.width = `${displayWidth}px`
 	container.style.height = `${displayHeight}px`
-	
-	// 不使用 CSS transform，避免框选不同步
-	// container.style.transform = `scale(${scale})`
-	
+
 	// 使用 X6 内置缩放（等 graph 创建后再应用）
 	if (graph) {
 		// 计算 X6 缩放比例：显示尺寸 / 逻辑尺寸
@@ -606,12 +600,14 @@ onMounted(async () => {
 			new Transform({
 				resizing: {
 					enabled: true,
-					minWidth: 20,
-					minHeight: 20,
+					// 允许无限制缩放，不设置 minWidth/minHeight/maxWidth/maxHeight
+					preserveAspectRatio: true, // 保持宽高比
+					orthogonal: false, // 禁用正交拉伸限制
+					restrict: false, // 关键：允许节点超出画布边界
 				},
 				rotating: {
 					enabled: true,
-					grid: 15,
+					grid: 15, // 15° 旋转吸附
 				},
 			})
 		)
@@ -1415,27 +1411,6 @@ defineExpose({
 	background: #0f172a;
 	overflow: hidden;
 	min-height: 0;
-}
-
-/* X6 选中样式增强 - 不改变边框,使用外部轮廓 */
-:deep(.x6-node-selected) {
-	/* 外部轮廓 */
-	outline: 2px solid #3b82f6;
-	outline-offset: 2px;
-	/* 外部光晕 */
-	box-shadow: 
-		0 0 0 4px rgba(59, 130, 246, 0.15),
-		0 0 12px rgba(59, 130, 246, 0.3);
-	/* 平滑过渡 */
-	transition: outline 0.15s ease, box-shadow 0.15s ease;
-}
-
-/* 不改变节点自身的边框样式 */
-:deep(.x6-node-selected rect),
-:deep(.x6-node-selected circle),
-:deep(.x6-node-selected ellipse) {
-	/* 保持原有边框不变 */
-	filter: brightness(1.05);
 }
 
 /* 提示消息样式 */
