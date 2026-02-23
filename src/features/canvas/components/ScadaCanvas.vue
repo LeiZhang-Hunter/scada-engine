@@ -1508,21 +1508,6 @@ defineExpose({
 	fill: none !important;
 }
 
-/* 禁用X6对shadow、line、highlight层的选中样式修改 */
-:deep(.x6-edge-selected path[data-selector="shadow"]),
-:deep(.x6-edge.x6-cell-selected path[data-selector="shadow"]) {
-	/* 不设置stroke，让它保持原始值 */
-}
-
-:deep(.x6-edge-selected path[data-selector="line"]),
-:deep(.x6-edge.x6-cell-selected path[data-selector="line"]) {
-	/* 不设置stroke，让它保持原始值 */
-}
-
-:deep(.x6-edge-selected path[data-selector="highlight"]),
-:deep(.x6-edge.x6-cell-selected path[data-selector="highlight"]) {
-	/* 不设置stroke，让它保持原始值 */
-}
 
 /* 确保选中时边的所有层保持可见且样式不变 */
 :deep(.x6-edge-selected),

@@ -48,9 +48,10 @@
 		</div>
 
 		<!-- 样式 -->
-		<div class="property-section">
+		<div v-if="hasStyleProps" class="property-section">
 			<h4>样式</h4>
-			<div class="property-item-inline">
+			<!-- 初始文本 -->
+			<div v-if="hasTextProp" class="property-item-inline">
 				<label>初始文本</label>
 				<input 
 					type="text" 
@@ -59,29 +60,32 @@
 					placeholder="设置默认显示文本" 
 				/>
 			</div>
-			<div class="property-item-inline">
+			<!-- 填充颜色 -->
+			<div v-if="hasFillProp" class="property-item-inline">
 				<label>填充颜色</label>
 				<div class="color-input-wrapper">
 					<input 
 						type="color" 
-						:value="normalizeColorValue(nodeAttrs?.body?.fill) || '#3b82f6'" 
+						:value="normalizeColorValue(nodeAttrs?.body?.fill) || getDefaultColor('fill')" 
 						@input="$emit('update-fill', $event)" 
 					/>
-					<span class="color-value">{{ nodeAttrs?.body?.fill || '#3b82f6' }}</span>
+					<span class="color-value">{{ nodeAttrs?.body?.fill || getDefaultColor('fill') }}</span>
 				</div>
 			</div>
-			<div class="property-item-inline">
+			<!-- 边框颜色 -->
+			<div v-if="hasStrokeProp" class="property-item-inline">
 				<label>边框颜色</label>
 				<div class="color-input-wrapper">
 					<input 
 						type="color" 
-						:value="normalizeColorValue(nodeAttrs?.body?.stroke) || '#2563eb'" 
+						:value="normalizeColorValue(nodeAttrs?.body?.stroke) || getDefaultColor('stroke')" 
 						@input="$emit('update-stroke', $event)" 
 					/>
-					<span class="color-value">{{ nodeAttrs?.body?.stroke || '#2563eb' }}</span>
+					<span class="color-value">{{ nodeAttrs?.body?.stroke || getDefaultColor('stroke') }}</span>
 				</div>
 			</div>
-			<div class="property-item-inline">
+			<!-- 边框宽度 -->
+			<div v-if="hasStrokeWidthProp" class="property-item-inline">
 				<label>边框宽度</label>
 				<input
 					type="number"
@@ -91,7 +95,8 @@
 					@input="$emit('update-stroke-width', $event)"
 				/>
 			</div>
-			<div class="property-item-inline">
+			<!-- 透明度 -->
+			<div v-if="hasOpacityProp" class="property-item-inline">
 				<label>透明度</label>
 				<input
 					type="number"
@@ -110,7 +115,6 @@
 			<div v-for="prop in dynamicProps" :key="prop.key" class="property-item-inline">
 				<label>
 					{{ prop.label }}
-					<span v-if="prop.description" class="property-hint">{{ prop.description }}</span>
 				</label>
 				
 				<!-- 文本输入 -->
@@ -188,6 +192,46 @@ const props = defineProps<{
 	nodeSize: NodeSize
 	nodeAttrs: any
 }>()
+
+// 获取 SVG 组件的 presetBindings
+const presetBindings = computed(() => {
+	const nodeData = props.selectedNode?.getData()
+	return nodeData?.presetBindings || []
+})
+
+// 检查是否配置了某个样式属性
+const hasStyleProperty = (propertyName: string): boolean => {
+	return presetBindings.value.some(
+		(binding: any) => binding.suggestedDriverProperty === propertyName
+	)
+}
+
+// 判断是否显示各个样式属性
+const hasTextProp = computed(() => hasStyleProperty('text') || hasStyleProperty('name'))
+const hasFillProp = computed(() => hasStyleProperty('fill'))
+const hasStrokeProp = computed(() => hasStyleProperty('stroke'))
+const hasStrokeWidthProp = computed(() => hasStyleProperty('strokeWidth'))
+const hasOpacityProp = computed(() => hasStyleProperty('opacity'))
+
+// 是否显示整个样式区块（至少有一个样式属性配置）
+const hasStyleProps = computed(() => {
+	return hasTextProp.value || hasFillProp.value || hasStrokeProp.value || 
+	       hasStrokeWidthProp.value || hasOpacityProp.value
+})
+
+// 获取默认颜色值
+const getDefaultColor = (property: string): string => {
+	const binding = presetBindings.value.find(
+		(b: any) => b.suggestedDriverProperty === property
+	)
+	
+	if (binding?.suggestedParams?.defaultColor) {
+		return binding.suggestedParams.defaultColor
+	}
+	
+	// 备用默认值
+	return property === 'fill' ? '#3b82f6' : '#2563eb'
+}
 
 const emit = defineEmits<{
 	'update-position': [axis: 'x' | 'y', event: Event]

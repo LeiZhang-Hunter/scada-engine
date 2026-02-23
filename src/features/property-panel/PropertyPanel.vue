@@ -718,13 +718,6 @@ const getNodeProperties = () => {
 	return properties
 }
 
-// 根据 deviceId 获取设备名称
-const getDeviceName = (deviceId?: string) => {
-	if (!deviceId || !props.deviceData?.devices) return undefined
-	
-	const device = props.deviceData.devices.find((d: any) => d.id === deviceId)
-	return device?.name
-}
 
 // Edge 相关方法
 const handleUpdateEdge = (updates: any) => {

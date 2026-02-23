@@ -16,7 +16,12 @@ import {
 } from '../core/types'
 
 /**
- * 动画状态（用于平滑插值）
+ * 备用状态颜色（当颜色映射找不到匹配值时使用）
+ */
+const FALLBACK_STATUS_COLOR = '#cccccc'
+
+/**
+ * 动画状态(用于平滑插值)
  */
 interface AnimationState {
   /** 当前值 */
