@@ -1258,11 +1258,11 @@ defineExpose({
 		selectedNode.value = null
 	},
 
-  // 注册组件
-  registryComponent: (config: ComponentConfig) => {
-    config.props.push(...COMMON_ANIMATION_PROPS)
-    componentRegistry.register(config)
-  },
+	// 注册组件
+	registryComponent: (config: ComponentConfig) => {
+		config.props.push(...COMMON_ANIMATION_PROPS)
+		componentRegistry.register(config)
+	},
 	
 	// === 数据访问 ===
 	/** 获取 X6 Graph 实例 */
